@@ -2,50 +2,73 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="format-detection" content="telephone=no">
     <title>Data TPP untuk FSVA</title>
-    
-    <!-- Tailwind CSS untuk Styling Modern & Responsif -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Konfigurasi Tailwind untuk Dark Mode & Glassmorphism -->
+
+    <!-- FOUC Prevention: Terapkan Dark Mode secara instan sebelum React dimuat -->
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        glass: 'rgba(255, 255, 255, 0.1)',
-                        glassBorder: 'rgba(255, 255, 255, 0.2)',
-                        glassDark: 'rgba(15, 23, 42, 0.6)',
-                        glassLight: 'rgba(255, 255, 255, 0.7)',
-                    }
-                }
+        try {
+            if (localStorage.getItem('tpp-dark-mode') === 'true' || (!('tpp-dark-mode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
             }
+        } catch (e) {
+            console.error("Kesalahan inisialisasi tema:", e);
+        }
+    </script>
+
+    <!-- Suppress Tailwind CDN production warning -->
+    <script>
+        (function() {
+            try {
+                var _warn = console.warn.bind(console);
+                console.warn = function() {
+                    var msg = arguments[0];
+                    if (typeof msg === 'string' && msg.indexOf('cdn.tailwindcss.com') !== -1) return;
+                    _warn.apply(console, arguments);
+                };
+            } catch(e) {}
+        })();
+    </script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        try {
+            tailwind.config = {
+                darkMode: 'class',
+                theme: { extend: {} }
+            }
+        } catch(e) {
+            console.error("Kesalahan konfigurasi Tailwind:", e);
         }
     </script>
 
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
+
     <!-- Babel untuk JSX -->
     <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
-    
+
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- PapaParse untuk membaca Google Sheet sebagai CSV -->
+    <!-- PapaParse -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <style>
-        /* Transisi Dasar */
+        /* ===== Custom Application Styles ===== */
         body {
             transition: background-color 0.3s ease, color 0.3s ease;
             min-height: 100vh;
+            touch-action: manipulation;
+            will-change: background-color; 
         }
 
-        /* LIGHT MODE (Default Style) */
+        /* LIGHT MODE */
         body {
             background-color: #f1f5f9;
             color: #0f172a;
@@ -60,7 +83,7 @@
         }
 
         /* DARK MODE */
-        .dark body {
+        html.dark body {
             background-color: #0f172a;
             background-image: 
                 radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
@@ -70,27 +93,30 @@
             color: #f8fafc;
         }
         
-        .dark .glass-panel {
+        html.dark .glass-panel {
             background: rgba(15, 23, 42, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
         }
 
-        /* Kustomisasi Scrollbar */
+        /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.5); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(156, 163, 175, 0.8); }
 
         .dropdown-menu {
-            transition: all 0.2s ease-in-out;
+            transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
             transform-origin: top;
         }
 
-        /* Animasi */
-        .fade-enter { opacity: 0; transform: translateY(-10px); }
-        .fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms, transform 300ms; }
-        
+        @keyframes dropdownIn {
+            from { opacity: 0; transform: scaleY(0.95); }
+            to   { opacity: 1; transform: scaleY(1); }
+        }
+        .dropdown-menu { animation: dropdownIn 0.15s ease-out forwards; }
+
+        /* Spinner loading */
         .spinner {
             border: 4px solid rgba(156, 163, 175, 0.3);
             width: 40px;
@@ -101,272 +127,123 @@
         }
         
         @keyframes spin {
-            0% { transform: rotate(0deg); }
+            0%   { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* Fix native select background in dark mode */
+        html.dark select {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            border-color: rgba(255,255,255,0.1);
+            color-scheme: dark;
+        }
+        html.dark select option {
+            background-color: #1e293b;
+            color: #e2e8f0;
+        }
+
+        .gradient-title {
+            background: linear-gradient(to right, #6366f1, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .filter-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.1rem;
+            height: 1.1rem;
+            border-radius: 9999px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 0 0.2rem;
+            background: #4f46e5;
+            color: white;
+            line-height: 1;
+        }
+
+        .touch-target {
+            min-height: 44px;
+        }
+
+        .metric-card:hover .card-bg-blob {
+            opacity: 0.12;
+        }
+        .card-bg-blob {
+            opacity: 0.05;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Tabel Scrollable Styling - Optimasi Mobile */
+        .table-container {
+            max-height: 55vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .sticky-header th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .sticky-header th::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        html.dark .sticky-header th::after {
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* FOUC Prevention untuk Ikon Lucide */
+        [data-lucide] {
+            width: 1em;
+            height: 1em;
+            display: inline-block;
         }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
+    <script type="text/babel" data-presets="env,react">
+        const { useState, useEffect, useMemo, useRef, useCallback, memo } = React;
 
-        // --- 1. KOMPONEN UI KUSTOM ---
-
-        // Komponen Ikon Vektor Lucide untuk React
-        const Icon = ({ name, className }) => {
+        // ─────────────────────────────────────────────
+        // 1. KOMPONEN IKON (Telah dioptimasi untuk mencegah FOUC)
+        // ─────────────────────────────────────────────
+        const Icon = memo(({ name, className }) => {
             const containerRef = useRef(null);
+
             useEffect(() => {
+                const el = containerRef.current;
+                if (!el || !window.lucide) return;
                 try {
-                    if (window.lucide && containerRef.current) {
-                        containerRef.current.innerHTML = `<i data-lucide="${name}"></i>`;
-                        window.lucide.createIcons({
-                            root: containerRef.current,
-                            attrs: { class: className }
-                        });
-                    }
+                    // Inject class ke <i> agar Tailwind langsung mengatur ukurannya SEBELUM Lucide meng-generate SVG
+                    el.innerHTML = `<i data-lucide="${name}" class="${className || ''}"></i>`;
+                    window.lucide.createIcons({ 
+                        nodes: el.querySelectorAll('[data-lucide]'), 
+                        attrs: { class: className || '' } 
+                    });
                 } catch (err) {
-                    console.error("Icon render error:", err);
+                    console.error("Kesalahan render ikon:", err);
                 }
+                return () => { if (el) el.innerHTML = ''; };
             }, [name, className]);
-            return <span ref={containerRef} style={{ display: 'contents' }}></span>;
-        };
 
-        // Custom Multi-Select Dropdown
-        const MultiSelect = ({ label, options, selectedValues, onChange, iconName }) => {
-            const [isOpen, setIsOpen] = useState(false);
-            const dropdownRef = useRef(null);
+            // Menggunakan inline-flex untuk menghindari masalah layout SVG pada safari/mobile browser lama
+            return <span ref={containerRef} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} aria-hidden="true"></span>;
+        });
 
-            useEffect(() => {
-                const handleClickOutside = (event) => {
-                    try {
-                        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsOpen(false);
-                    } catch (err) {
-                        console.error("Error handling click outside:", err);
-                    }
-                };
-                document.addEventListener('mousedown', handleClickOutside);
-                return () => document.removeEventListener('mousedown', handleClickOutside);
-            }, []);
-
-            const toggleOption = (option) => {
-                try {
-                    if (selectedValues.includes(option)) {
-                        onChange(selectedValues.filter(item => item !== option));
-                    } else {
-                        onChange([...selectedValues, option]);
-                    }
-                } catch (error) {
-                    console.error("Error toggling option:", error);
-                }
-            };
-
-            return (
-                <div className="relative w-full" ref={dropdownRef}>
-                    <label className="flex items-center text-xs font-medium text-slate-500 dark:text-slate-300 mb-1">
-                        {iconName && <Icon name={iconName} className="w-3 h-3 mr-1" />}
-                        {label}
-                    </label>
-                    <div 
-                        className="glass-panel w-full rounded-lg p-2 flex justify-between items-center cursor-pointer min-h-[42px]"
-                        onClick={() => setIsOpen(!isOpen)}
-                    >
-                        <div className="flex-1 overflow-hidden whitespace-nowrap text-sm text-slate-800 dark:text-slate-200">
-                            {selectedValues.length === 0 ? <span className="text-slate-400 dark:text-slate-500">Pilih {label}...</span> : selectedValues.join(', ')}
-                        </div>
-                        <Icon name={isOpen ? "chevron-up" : "chevron-down"} className="w-4 h-4 text-slate-400 dark:text-slate-500 ml-2" />
-                    </div>
-
-                    {isOpen && (
-                        <div className="absolute z-50 w-full mt-1 glass-panel rounded-lg shadow-xl max-h-60 overflow-auto dropdown-menu fade-enter-active">
-                            {options.map((option, idx) => (
-                                <div 
-                                    key={idx} 
-                                    className="flex items-center p-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-slate-700 dark:text-slate-200"
-                                    onClick={() => toggleOption(option)}
-                                >
-                                    <input 
-                                        type="checkbox" 
-                                        className="mr-2 rounded bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-indigo-500 focus:ring-indigo-500 focus:ring-opacity-50"
-                                        checked={selectedValues.includes(option)}
-                                        readOnly
-                                    />
-                                    <span className="text-sm">{option}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        // Custom Single Select (Hierarchical)
-        const Select = ({ label, value, options, onChange, disabled, iconName }) => {
-            return (
-                <div className="w-full">
-                    <label className="flex items-center text-xs font-medium text-slate-500 dark:text-slate-300 mb-1">
-                        {iconName && <Icon name={iconName} className="w-3 h-3 mr-1" />}
-                        {label}
-                    </label>
-                    <div className="relative">
-                        <select 
-                            className={`w-full glass-panel rounded-lg p-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                            value={value}
-                            onChange={(e) => {
-                                try {
-                                    onChange(e.target.value);
-                                } catch(err) {
-                                    console.error("Error selecting option:", err);
-                                }
-                            }}
-                            disabled={disabled}
-                        >
-                            <option value="" className="text-slate-800">Semua {label}</option>
-                            {options.map((opt, idx) => (
-                                <option key={idx} value={opt} className="text-slate-800">{opt}</option>
-                            ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 dark:text-slate-500">
-                            <Icon name="chevron-down" className="w-4 h-4" />
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // --- 2. KOMPONEN FILTER UTAMA ---
-        const FilterGroup = ({ data, filters, setFilters, title }) => {
-            // Options extraction based on current hierarchy
-            const years = useMemo(() => [...new Set(data.map(d => d.tahun).filter(Boolean))].sort(), [data]);
-            const jenisTPPs = useMemo(() => [...new Set(data.map(d => d.jenisTPP).filter(Boolean))].sort(), [data]);
-            
-            // Status Options dinamis
-            const statusIKLOptions = useMemo(() => [...new Set(data.map(d => d.statusIKL).filter(Boolean))].sort(), [data]);
-            const statusKapOptions = useMemo(() => [...new Set(data.map(d => d.statusKapasitas).filter(Boolean))].sort(), [data]);
-            const statusPanganOptions = useMemo(() => [...new Set(data.map(d => d.statusPangan).filter(Boolean))].sort(), [data]);
-
-            // Hierarchical locations
-            const provs = useMemo(() => [...new Set(data.map(d => d.provinsi).filter(Boolean))].sort(), [data]);
-            const kabs = useMemo(() => {
-                let filtered = data;
-                if (filters.provinsi) filtered = filtered.filter(d => d.provinsi === filters.provinsi);
-                return [...new Set(filtered.map(d => d.kabupaten).filter(Boolean))].sort();
-            }, [data, filters.provinsi]);
-            const kecs = useMemo(() => {
-                let filtered = data;
-                if (filters.kabupaten) filtered = filtered.filter(d => d.kabupaten === filters.kabupaten);
-                else if (filters.provinsi) filtered = filtered.filter(d => d.provinsi === filters.provinsi);
-                return [...new Set(filtered.map(d => d.kecamatan).filter(Boolean))].sort();
-            }, [data, filters.provinsi, filters.kabupaten]);
-            const pusks = useMemo(() => {
-                let filtered = data;
-                if (filters.kecamatan) filtered = filtered.filter(d => d.kecamatan === filters.kecamatan);
-                else if (filters.kabupaten) filtered = filtered.filter(d => d.kabupaten === filters.kabupaten);
-                return [...new Set(filtered.map(d => d.puskesmas).filter(Boolean))].sort();
-            }, [data, filters.kabupaten, filters.kecamatan]);
-
-            return (
-                <div className="glass-panel p-5 rounded-2xl mb-6">
-                    <h2 className="text-lg font-semibold mb-4 text-indigo-600 dark:text-indigo-300 flex items-center">
-                        <Icon name="filter" className="w-5 h-5 mr-2" /> {title}
-                    </h2>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        <MultiSelect 
-                            label="Tahun Input TPP" 
-                            iconName="calendar"
-                            options={years} 
-                            selectedValues={filters.tahun} 
-                            onChange={(val) => setFilters({...filters, tahun: val})} 
-                        />
-
-                        <Select 
-                            label="Provinsi" 
-                            iconName="map"
-                            options={provs} 
-                            value={filters.provinsi} 
-                            onChange={(val) => setFilters({...filters, provinsi: val, kabupaten: '', kecamatan: '', puskesmas: ''})} 
-                        />
-                        <Select 
-                            label="Kabupaten/Kota" 
-                            iconName="map-pin"
-                            options={kabs} 
-                            value={filters.kabupaten} 
-                            onChange={(val) => setFilters({...filters, kabupaten: val, kecamatan: '', puskesmas: ''})} 
-                            disabled={!filters.provinsi}
-                        />
-                        <Select 
-                            label="Kecamatan" 
-                            iconName="compass"
-                            options={kecs} 
-                            value={filters.kecamatan} 
-                            onChange={(val) => setFilters({...filters, kecamatan: val, puskesmas: ''})} 
-                            disabled={!filters.kabupaten}
-                        />
-                        <Select 
-                            label="Puskesmas" 
-                            iconName="building"
-                            options={pusks} 
-                            value={filters.puskesmas} 
-                            onChange={(val) => setFilters({...filters, puskesmas: val})} 
-                            disabled={!filters.kecamatan}
-                        />
-
-                        <Select 
-                            label="Jenis TPP" 
-                            iconName="utensils"
-                            options={jenisTPPs} 
-                            value={filters.jenisTPP} 
-                            onChange={(val) => setFilters({...filters, jenisTPP: val})} 
-                        />
-
-                        <MultiSelect 
-                            label="Status Inspeksi Kesling" 
-                            iconName="clipboard-check"
-                            options={statusIKLOptions} 
-                            selectedValues={filters.statusIKL} 
-                            onChange={(val) => setFilters({...filters, statusIKL: val})} 
-                        />
-                        <MultiSelect 
-                            label="Status Peningkatan Kapasitas" 
-                            iconName="trending-up"
-                            options={statusKapOptions} 
-                            selectedValues={filters.statusKapasitas} 
-                            onChange={(val) => setFilters({...filters, statusKapasitas: val})} 
-                        />
-                        <MultiSelect 
-                            label="Status Pemeriksaan Pangan" 
-                            iconName="shield-check"
-                            options={statusPanganOptions} 
-                            selectedValues={filters.statusPangan} 
-                            onChange={(val) => setFilters({...filters, statusPangan: val})} 
-                        />
-                    </div>
-                    
-                    <div className="mt-4 flex justify-end">
-                        <button 
-                            onClick={() => {
-                                try {
-                                    setFilters({
-                                        tahun: [], provinsi: '', kabupaten: '', kecamatan: '', puskesmas: '', 
-                                        jenisTPP: '', statusIKL: [], statusKapasitas: [], statusPangan: []
-                                    })
-                                } catch (err) {
-                                    console.error("Error resetting filter:", err);
-                                }
-                            }}
-                            className="text-xs text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors flex items-center"
-                        >
-                            <Icon name="rotate-ccw" className="w-3 h-3 mr-1" />
-                            Reset Filter
-                        </button>
-                    </div>
-                </div>
-            );
-        };
-
-        // --- 3. FUNGSI UTILITAS PENGOLAHAN DATA ---
+        // ─────────────────────────────────────────────
+        // 2. FUNGSI UTILITAS & KALKULASI
+        // ─────────────────────────────────────────────
         const applyFilters = (data, filters) => {
             try {
                 return data.filter(item => {
@@ -382,7 +259,7 @@
                     return true;
                 });
             } catch (error) {
-                console.error("Error applying filters:", error);
+                console.error("Kesalahan memproses filter:", error);
                 return [];
             }
         };
@@ -390,180 +267,650 @@
         const calculateKPIs = (data) => {
             try {
                 const total = data.length;
-                
-                // Menghitung jumlah yang memenuhi syarat
-                const msIKL = data.filter(d => d.statusIKL && d.statusIKL.toLowerCase().includes('memenuhi') && !d.statusIKL.toLowerCase().includes('tidak memenuhi')).length;
-                const msKapasitas = data.filter(d => d.statusKapasitas && d.statusKapasitas.toLowerCase().includes('memenuhi') && !d.statusKapasitas.toLowerCase().includes('tidak memenuhi')).length;
-                const msPangan = data.filter(d => d.statusPangan && d.statusPangan.toLowerCase().includes('memenuhi') && !d.statusPangan.toLowerCase().includes('tidak memenuhi')).length;
-                const msTPP = data.filter(d => d.statusTPP && d.statusTPP.toLowerCase().includes('memenuhi') && !d.statusTPP.toLowerCase().includes('tidak memenuhi')).length;
-                
+                const isMS = (val) => val && val.toLowerCase().includes('memenuhi') && !val.toLowerCase().includes('tidak memenuhi');
+                const msIKL = data.filter(d => isMS(d.statusIKL)).length;
+                const msKapasitas = data.filter(d => isMS(d.statusKapasitas)).length;
+                const msPangan = data.filter(d => isMS(d.statusPangan)).length;
+                const msTPP = data.filter(d => isMS(d.statusTPP)).length;
+
+                const pct = (n) => total > 0 ? parseFloat(((n / total) * 100).toFixed(1)) : 0;
+
                 return {
                     total,
-                    valIKL: msIKL,
-                    pctIKL: total ? ((msIKL / total) * 100).toFixed(1) : 0,
-                    valKapasitas: msKapasitas,
-                    pctKapasitas: total ? ((msKapasitas / total) * 100).toFixed(1) : 0,
-                    valPangan: msPangan,
-                    pctPangan: total ? ((msPangan / total) * 100).toFixed(1) : 0,
-                    valTPP: msTPP,
-                    pctTPP: total ? ((msTPP / total) * 100).toFixed(1) : 0,
+                    valIKL: msIKL,      pctIKL: pct(msIKL),
+                    valKapasitas: msKapasitas, pctKapasitas: pct(msKapasitas),
+                    valPangan: msPangan,  pctPangan: pct(msPangan),
+                    valTPP: msTPP,      pctTPP: pct(msTPP),
                 };
             } catch (error) {
-                console.error("Error calculating KPIs:", error);
+                console.error("Kesalahan menghitung KPI:", error);
                 return { total: 0, valIKL: 0, pctIKL: 0, valKapasitas: 0, pctKapasitas: 0, valPangan: 0, pctPangan: 0, valTPP: 0, pctTPP: 0 };
             }
         };
 
         const getComparisonIndicator = (valA, valB, isTimeCompare) => {
             try {
-                if (valA === valB) return { text: 'Sama', color: 'text-slate-500 dark:text-slate-400', icon: 'minus' };
+                const numA = parseFloat(valA);
+                const numB = parseFloat(valB);
+                if (isNaN(numA) || isNaN(numB)) return null;
+                if (numA === numB) return { text: 'Sama dengan A', color: 'text-slate-500 dark:text-slate-400', icon: 'minus' };
                 
-                const diff = (valB - valA).toFixed(1);
-                const isIncrease = valB > valA;
+                const diff = Math.abs(numB - numA).toFixed(1);
+                const isIncrease = numB > numA;
 
-                if (isTimeCompare) {
-                    // Perbandingan Waktu: Garis Diagonal Naik / Turun
-                    return {
-                        text: `${isIncrease ? 'Naik' : 'Turun'} ${Math.abs(diff)}`,
-                        color: isIncrease ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400',
-                        icon: isIncrease ? 'trending-up' : 'trending-down'
-                    };
-                } else {
-                    // Perbandingan Lokasi: Tanda Panah Lebih Tinggi / Lebih Rendah
-                    return {
-                        text: `${isIncrease ? 'Lebih Tinggi' : 'Lebih Rendah'} ${Math.abs(diff)}`,
-                        color: isIncrease ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400',
-                        icon: isIncrease ? 'arrow-up' : 'arrow-down'
-                    };
-                }
+                return {
+                    text: isTimeCompare
+                        ? `${isIncrease ? 'Naik' : 'Turun'} ${diff}`
+                        : `${isIncrease ? 'Lebih Tinggi' : 'Lebih Rendah'} ${diff}`,
+                    color: isIncrease
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-rose-600 dark:text-rose-400',
+                    icon: isTimeCompare
+                        ? (isIncrease ? 'trending-up' : 'trending-down')
+                        : (isIncrease ? 'arrow-up' : 'arrow-down')
+                };
             } catch (err) {
-                console.error("Error getting comparison indicator:", err);
+                console.error("Kesalahan kalkulasi indikator komparasi:", err);
                 return null;
             }
         };
 
-        // --- 4. KOMPONEN VISUALISASI KARTU ---
-        const DashboardView = ({ title, kpis, comparisonTargetKPIs, isComparing, filtersA, filtersB }) => {
-            
-            const isTimeCompare = React.useMemo(() => {
-                try {
-                    if (!isComparing) return false;
-                    if (filtersA.provinsi !== filtersB.provinsi || filtersA.kabupaten !== filtersB.kabupaten) return false;
-                    if (JSON.stringify(filtersA.tahun) !== JSON.stringify(filtersB.tahun)) return true;
-                    return false;
-                } catch (err) {
-                    console.error("Error in isTimeCompare memo:", err);
-                    return false;
-                }
-            }, [isComparing, filtersA, filtersB]);
+        const countActiveFilters = (filters) => {
+            let n = 0;
+            try {
+                if (filters.tahun.length > 0) n++;
+                if (filters.provinsi) n++;
+                if (filters.kabupaten) n++;
+                if (filters.kecamatan) n++;
+                if (filters.puskesmas) n++;
+                if (filters.jenisTPP) n++;
+                n += filters.statusIKL.length > 0 ? 1 : 0;
+                n += filters.statusKapasitas.length > 0 ? 1 : 0;
+                n += filters.statusPangan.length > 0 ? 1 : 0;
+            } catch (e) { console.error("Kesalahan menghitung filter aktif:", e); }
+            return n;
+        };
 
-            const MetricCard = ({ label, value, percentage, unit, compValue, iconName }) => {
-                let compInfo = null;
-                try {
-                    if (isComparing && compValue !== undefined) {
-                        // Membandingkan persentase jika ada, jika tidak bandingkan value absolut
-                        const compareVal = percentage !== undefined ? percentage : value;
-                        compInfo = getComparisonIndicator(compValue, compareVal, isTimeCompare);
+        // ─────────────────────────────────────────────
+        // 3. KOMPONEN INPUT FORM
+        // ─────────────────────────────────────────────
+        const MultiSelect = memo(({ label, options, selectedValues, onChange, iconName, onDropdownToggle }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const dropdownRef = useRef(null);
+
+            useEffect(() => {
+                const handleOutside = (e) => {
+                    try {
+                        if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                            setIsOpen(false);
+                            if(onDropdownToggle) onDropdownToggle(false);
+                        }
+                    } catch (error) {
+                        console.error("Kesalahan klik di luar area:", error);
                     }
-                } catch (err) {
-                    console.error("Error formatting metric card:", err);
-                }
+                };
+                document.addEventListener('mousedown', handleOutside);
+                document.addEventListener('touchstart', handleOutside, { passive: true });
+                return () => {
+                    document.removeEventListener('mousedown', handleOutside);
+                    document.removeEventListener('touchstart', handleOutside);
+                };
+            }, [onDropdownToggle]);
 
-                return (
-                    <div className="glass-panel p-5 rounded-xl flex flex-col relative overflow-hidden group h-full">
-                        <div className="absolute -right-4 -top-4 w-20 h-20 bg-indigo-500 opacity-5 rounded-full blur-xl group-hover:opacity-10 transition-opacity"></div>
-                        
-                        <div className="flex justify-between items-start mb-3">
-                            <span className="text-slate-500 dark:text-slate-400 text-xs font-bold tracking-wider">{label}</span>
-                            {iconName && <Icon name={iconName} className="w-5 h-5 text-indigo-400 dark:text-indigo-500 opacity-60" />}
-                        </div>
-                        
-                        <div className="flex items-baseline gap-2 mt-auto">
-                            <span className="text-3xl font-extrabold text-slate-800 dark:text-white">{value}</span>
-                            <span className="text-sm text-slate-500 dark:text-slate-400 font-semibold">{unit}</span>
-                            {percentage !== undefined && (
-                                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400 ml-1">({percentage}%)</span>
-                            )}
-                        </div>
-                        
-                        {compInfo && (
-                            <div className={`mt-3 pt-2 border-t border-slate-200 dark:border-slate-700 border-opacity-50 text-xs flex items-center font-bold ${compInfo.color}`}>
-                                <Icon name={compInfo.icon} className="w-3 h-3 mr-1" />
-                                {compInfo.text} {percentage !== undefined ? '%' : unit} dari Kriteria A
-                            </div>
-                        )}
-                    </div>
-                );
+            const toggleOption = useCallback((option) => {
+                try {
+                    if (selectedValues.includes(option)) {
+                        onChange(selectedValues.filter(item => item !== option));
+                    } else {
+                        onChange([...selectedValues, option]);
+                    }
+                } catch (error) {
+                    console.error("Kesalahan saat memilih opsi dropdown:", error);
+                }
+            }, [selectedValues, onChange]);
+
+            const toggleDropdown = () => {
+                try { 
+                    const newState = !isOpen;
+                    setIsOpen(newState); 
+                    if(onDropdownToggle) onDropdownToggle(newState);
+                } 
+                catch(e) { console.error(e); }
             };
 
+            const count = selectedValues.length;
+            const displayText = count === 0
+                ? <span className="text-slate-400 dark:text-slate-500">Pilih {label}...</span>
+                : <span className="truncate block w-full text-left">{selectedValues.join(', ')}</span>;
+
             return (
-                <div className="flex-1 flex flex-col gap-4">
-                    {title && <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{title}</h3>}
+                <div className={`relative w-full ${isOpen ? 'z-50' : 'z-10'}`} ref={dropdownRef}>
+                    <label className="flex items-center text-xs font-medium text-slate-500 dark:text-slate-300 mb-1">
+                        {iconName && <Icon name={iconName} className="w-3 h-3 mr-1" />}
+                        {label}
+                        {count > 0 && <span className="filter-badge ml-1.5">{count}</span>}
+                    </label>
+                    <div
+                        role="combobox"
+                        aria-expanded={isOpen}
+                        aria-haspopup="listbox"
+                        className={`glass-panel w-full rounded-lg px-2.5 py-2 flex justify-between items-center cursor-pointer touch-target transition-colors ${isOpen ? 'ring-2 ring-indigo-500/50' : ''}`}
+                        onClick={toggleDropdown}
+                    >
+                        <div className="flex-1 overflow-hidden text-sm text-slate-800 dark:text-slate-200 min-w-0 pr-2">
+                            {displayText}
+                        </div>
+                        <span className="flex-shrink-0 text-slate-400 dark:text-slate-500">
+                            <Icon name={isOpen ? "chevron-up" : "chevron-down"} className="w-4 h-4" />
+                        </span>
+                    </div>
+
+                    {isOpen && (
+                        <div
+                            role="listbox"
+                            className="absolute z-[100] w-full mt-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-2xl dropdown-menu max-h-60 overflow-y-auto overflow-x-hidden overscroll-contain"
+                        >
+                            {options.length === 0 ? (
+                                <div className="p-4 text-sm text-slate-400 dark:text-slate-500 text-center italic">Tidak ada opsi tersedia</div>
+                            ) : options.map((option, idx) => {
+                                const isSelected = selectedValues.includes(option);
+                                return (
+                                    <div
+                                        key={idx}
+                                        role="option"
+                                        aria-selected={isSelected}
+                                        className={`flex items-start px-3 py-3 border-b border-slate-50 dark:border-slate-700/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 active:bg-indigo-100 dark:active:bg-indigo-900/50 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-50/50 dark:bg-slate-700/50' : ''}`}
+                                        onClick={(e) => { 
+                                            try {
+                                                e.stopPropagation(); 
+                                                toggleOption(option); 
+                                            } catch (err) {
+                                                console.error("Kesalahan onClick item dropdown:", err);
+                                            }
+                                        }}
+                                    >
+                                        <div className="flex-shrink-0 mr-3 mt-0.5">
+                                            {/* PERBAIKAN IKON KOTAK CENTANG: enforce width/height dan flex center sempurna */}
+                                            <div className={`flex items-center justify-center w-5 h-5 min-w-[20px] min-h-[20px] rounded border transition-colors shadow-sm ${isSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-800 text-transparent'}`}>
+                                                {isSelected && <Icon name="check" className="w-3.5 h-3.5 text-white stroke-2" />}
+                                            </div>
+                                        </div>
+                                        <span className={`text-sm leading-tight flex-1 mt-0.5 ${isSelected ? 'font-medium text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>
+                                            {option}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
+        });
+
+        const Select = memo(({ label, value, options, onChange, disabled, iconName }) => {
+            return (
+                <div className="w-full relative z-10">
+                    <label className="flex items-center text-xs font-medium text-slate-500 dark:text-slate-300 mb-1">
+                        {iconName && <Icon name={iconName} className="w-3 h-3 mr-1" />}
+                        {label}
+                        {value && (
+                            <span className="filter-badge ml-1.5 bg-emerald-500">1</span>
+                        )}
+                    </label>
+                    <div className="relative">
+                        <select
+                            className={`w-full glass-panel rounded-lg px-2.5 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none touch-target transition-all ${disabled ? 'opacity-50 bg-slate-100 dark:bg-slate-800 cursor-not-allowed' : 'cursor-pointer hover:border-slate-300 dark:hover:border-slate-600'}`}
+                            value={value}
+                            onChange={(e) => { try { onChange(e.target.value); } catch(err) { console.error("Kesalahan Select:", err); } }}
+                            disabled={disabled}
+                            aria-label={label}
+                        >
+                            <option value="">Semua {label}</option>
+                            {options.map((opt, idx) => (
+                                <option key={idx} value={opt}>{opt}</option>
+                            ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 dark:text-slate-500">
+                            <Icon name="chevron-down" className="w-4 h-4" />
+                        </div>
+                    </div>
+                </div>
+            );
+        });
+
+        // ─────────────────────────────────────────────
+        // 4. FILTER GROUP
+        // ─────────────────────────────────────────────
+        const INITIAL_FILTER = {
+            tahun: [], provinsi: '', kabupaten: '', kecamatan: '', puskesmas: '',
+            jenisTPP: '', statusIKL: [], statusKapasitas: [], statusPangan: []
+        };
+
+        const FilterGroup = memo(({ data, filters, setFilters, title }) => {
+            // State untuk mengelola z-index parent div agar dropdown tidak terpotong oleh grid sekitarnya
+            const [activeDropdowns, setActiveDropdowns] = useState(0);
+
+            const years       = useMemo(() => [...new Set(data.map(d => d.tahun).filter(Boolean))].sort(), [data]);
+            const jenisTPPs   = useMemo(() => [...new Set(data.map(d => d.jenisTPP).filter(Boolean))].sort(), [data]);
+            const statusIKLOptions  = useMemo(() => [...new Set(data.map(d => d.statusIKL).filter(Boolean))].sort(), [data]);
+            const statusKapOptions  = useMemo(() => [...new Set(data.map(d => d.statusKapasitas).filter(Boolean))].sort(), [data]);
+            const statusPanganOptions = useMemo(() => [...new Set(data.map(d => d.statusPangan).filter(Boolean))].sort(), [data]);
+
+            const provs = useMemo(() => [...new Set(data.map(d => d.provinsi).filter(Boolean))].sort(), [data]);
+
+            const kabs = useMemo(() => {
+                try {
+                    const filtered = filters.provinsi ? data.filter(d => d.provinsi === filters.provinsi) : data;
+                    return [...new Set(filtered.map(d => d.kabupaten).filter(Boolean))].sort();
+                } catch (e) {
+                    console.error("Kesalahan filter Kabupaten:", e); return [];
+                }
+            }, [data, filters.provinsi]);
+
+            const kecs = useMemo(() => {
+                try {
+                    let filtered = data;
+                    if (filters.kabupaten) filtered = filtered.filter(d => d.kabupaten === filters.kabupaten);
+                    else if (filters.provinsi) filtered = filtered.filter(d => d.provinsi === filters.provinsi);
+                    return [...new Set(filtered.map(d => d.kecamatan).filter(Boolean))].sort();
+                } catch (e) {
+                    console.error("Kesalahan filter Kecamatan:", e); return [];
+                }
+            }, [data, filters.provinsi, filters.kabupaten]);
+
+            const pusks = useMemo(() => {
+                try {
+                    let filtered = data;
+                    if (filters.kecamatan) filtered = filtered.filter(d => d.kecamatan === filters.kecamatan);
+                    else if (filters.kabupaten) filtered = filtered.filter(d => d.kabupaten === filters.kabupaten);
+                    else return []; 
+                    return [...new Set(filtered.map(d => d.puskesmas).filter(Boolean))].sort();
+                } catch (e) {
+                    console.error("Kesalahan filter Puskesmas:", e); return [];
+                }
+            }, [data, filters.kabupaten, filters.kecamatan]);
+
+            const activeCount = useMemo(() => countActiveFilters(filters), [filters]);
+
+            const handleDropdownToggle = useCallback((isOpen) => {
+                setActiveDropdowns(prev => isOpen ? prev + 1 : Math.max(0, prev - 1));
+            }, []);
+
+            return (
+                <div className={`glass-panel p-4 md:p-5 rounded-2xl mb-6 relative shadow-lg border-indigo-100/50 dark:border-indigo-900/30 transition-all ${activeDropdowns > 0 ? 'z-50' : 'z-30'}`}>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-base md:text-lg font-semibold text-indigo-700 dark:text-indigo-400 flex items-center">
+                            <Icon name="filter" className="w-4 h-4 mr-2" />
+                            {title}
+                            {activeCount > 0 && (
+                                <span className="ml-2 px-2.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded-full border border-indigo-200 dark:border-indigo-700">
+                                    {activeCount} aktif
+                                </span>
+                            )}
+                        </h2>
+                        {activeCount > 0 && (
+                            <button
+                                onClick={() => { try { setFilters(INITIAL_FILTER); } catch(err) { console.error("Kesalahan Reset Filter:", err); } }}
+                                className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-medium transition-colors flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 border border-rose-100 dark:border-rose-800/50 touch-target"
+                                title="Hapus semua filter"
+                            >
+                                <Icon name="trash-2" className="w-3.5 h-3.5" />
+                                Bersihkan
+                            </button>
+                        )}
+                    </div>
                     
-                    {/* Grid yang responsif untuk 5 Kartu */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-                        <MetricCard 
-                            label="Total TPP" 
-                            iconName="database" 
-                            value={kpis.total} 
-                            unit="Unit" 
-                            compValue={comparisonTargetKPIs?.total} 
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 relative">
+                        <MultiSelect
+                            label="Tahun Input TPP"
+                            iconName="calendar"
+                            options={years}
+                            selectedValues={filters.tahun}
+                            onChange={(val) => setFilters({...filters, tahun: val})}
+                            onDropdownToggle={handleDropdownToggle}
                         />
-                        <MetricCard 
-                            label="Memenuhi Syarat Inspeksi Kesling" 
-                            iconName="check-circle" 
-                            value={kpis.valIKL} 
-                            percentage={kpis.pctIKL} 
-                            unit="Unit" 
-                            compValue={comparisonTargetKPIs?.pctIKL} 
+                        <Select
+                            label="Provinsi"
+                            iconName="map"
+                            options={provs}
+                            value={filters.provinsi}
+                            onChange={(val) => setFilters({...filters, provinsi: val, kabupaten: '', kecamatan: '', puskesmas: ''})}
                         />
-                        <MetricCard 
-                            label="Memenuhi Syarat Peningkatan Kapasitas" 
-                            iconName="bar-chart-2" 
-                            value={kpis.valKapasitas} 
-                            percentage={kpis.pctKapasitas} 
-                            unit="Unit" 
-                            compValue={comparisonTargetKPIs?.pctKapasitas} 
+                        <Select
+                            label="Kabupaten/Kota"
+                            iconName="map-pin"
+                            options={kabs}
+                            value={filters.kabupaten}
+                            onChange={(val) => setFilters({...filters, kabupaten: val, kecamatan: '', puskesmas: ''})}
+                            disabled={!filters.provinsi}
                         />
-                        <MetricCard 
-                            label="Memenuhi Syarat Pemeriksaan Pangan" 
-                            iconName="shield" 
-                            value={kpis.valPangan} 
-                            percentage={kpis.pctPangan} 
-                            unit="Unit" 
-                            compValue={comparisonTargetKPIs?.pctPangan} 
+                        <Select
+                            label="Kecamatan"
+                            iconName="compass"
+                            options={kecs}
+                            value={filters.kecamatan}
+                            onChange={(val) => setFilters({...filters, kecamatan: val, puskesmas: ''})}
+                            disabled={!filters.kabupaten}
                         />
-                        <MetricCard 
-                            label="TPP Memenuhi Syarat" 
-                            iconName="award" 
-                            value={kpis.valTPP} 
-                            percentage={kpis.pctTPP} 
-                            unit="Unit" 
-                            compValue={comparisonTargetKPIs?.pctTPP} 
+                        <Select
+                            label="Puskesmas"
+                            iconName="building"
+                            options={pusks}
+                            value={filters.puskesmas}
+                            onChange={(val) => setFilters({...filters, puskesmas: val})}
+                            disabled={!filters.kecamatan}
+                        />
+                        <Select
+                            label="Jenis TPP"
+                            iconName="utensils"
+                            options={jenisTPPs}
+                            value={filters.jenisTPP}
+                            onChange={(val) => setFilters({...filters, jenisTPP: val})}
+                        />
+                        <MultiSelect
+                            label="Status Inspeksi Kesling"
+                            iconName="clipboard-check"
+                            options={statusIKLOptions}
+                            selectedValues={filters.statusIKL}
+                            onChange={(val) => setFilters({...filters, statusIKL: val})}
+                            onDropdownToggle={handleDropdownToggle}
+                        />
+                        <MultiSelect
+                            label="Status Peningkatan Kapasitas"
+                            iconName="trending-up"
+                            options={statusKapOptions}
+                            selectedValues={filters.statusKapasitas}
+                            onChange={(val) => setFilters({...filters, statusKapasitas: val})}
+                            onDropdownToggle={handleDropdownToggle}
+                        />
+                        <MultiSelect
+                            label="Status Pemeriksaan Pangan"
+                            iconName="shield-check"
+                            options={statusPanganOptions}
+                            selectedValues={filters.statusPangan}
+                            onChange={(val) => setFilters({...filters, statusPangan: val})}
+                            onDropdownToggle={handleDropdownToggle}
                         />
                     </div>
                 </div>
             );
-        };
+        });
 
-        // --- 5. KOMPONEN UTAMA (APP) ---
-        const App = () => {
-            const [rawData, setRawData] = useState([]);
-            const [isLoading, setIsLoading] = useState(true);
-            const [error, setError] = useState(null);
-            const [lastSyncTime, setLastSyncTime] = useState('');
-            const [isDarkMode, setIsDarkMode] = useState(true);
+        // ─────────────────────────────────────────────
+        // 5. DASHBOARD VIEW & KARTU METRIK
+        // ─────────────────────────────────────────────
+        const MetricCard = memo(({ label, value, percentage, unit, compValue, iconName, accentColor, isComparing, isTimeCompare }) => {
+            let compInfo = null;
+            try {
+                if (isComparing && compValue !== undefined) {
+                    const myVal  = percentage !== undefined ? percentage : value;
+                    compInfo = getComparisonIndicator(compValue, myVal, isTimeCompare);
+                }
+            } catch (err) {
+                console.error("Kesalahan komparasi MetricCard:", err);
+            }
 
-            const initialFilterState = {
-                tahun: [], provinsi: '', kabupaten: '', kecamatan: '', puskesmas: '',
-                jenisTPP: '', statusIKL: [], statusKapasitas: [], statusPangan: []
+            const accent = accentColor || 'indigo';
+
+            return (
+                <div className={`metric-card glass-panel p-4 md:p-5 rounded-xl flex flex-col relative overflow-hidden h-full border-t-4 border-t-${accent}-500`}>
+                    <div className={`card-bg-blob absolute -right-4 -top-4 w-24 h-24 bg-${accent}-500 rounded-full blur-2xl`}></div>
+
+                    <div className="flex justify-between items-start mb-3 relative z-10">
+                        <span className="text-slate-600 dark:text-slate-300 text-xs font-bold tracking-wide leading-snug pr-2">{label}</span>
+                        {iconName && <Icon name={iconName} className={`w-5 h-5 text-${accent}-500 dark:text-${accent}-400 flex-shrink-0 opacity-80`} />}
+                    </div>
+
+                    <div className="flex flex-wrap items-baseline gap-1.5 mt-auto relative z-10">
+                        <span className="text-3xl font-extrabold text-slate-800 dark:text-white">{new Intl.NumberFormat('id-ID').format(value)}</span>
+                        <span className="text-sm text-slate-500 dark:text-slate-400 font-semibold">{unit}</span>
+                        {percentage !== undefined && (
+                            <span className={`text-base md:text-lg font-bold text-${accent}-600 dark:text-${accent}-400 ml-1 bg-${accent}-50 dark:bg-${accent}-900/30 px-1.5 py-0.5 rounded-md`}>
+                                ({percentage}%)
+                            </span>
+                        )}
+                    </div>
+
+                    {compInfo && (
+                        <div className={`mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 text-xs flex items-center font-bold ${compInfo.color} relative z-10`}>
+                            <Icon name={compInfo.icon} className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+                            <span>{compInfo.text}{percentage !== undefined ? '%' : ` ${unit}`} dari A</span>
+                        </div>
+                    )}
+                </div>
+            );
+        });
+
+        const DashboardView = memo(({ title, kpis, comparisonTargetKPIs, isComparing, filtersA, filtersB }) => {
+
+            const isTimeCompare = useMemo(() => {
+                try {
+                    if (!isComparing || !filtersA || !filtersB) return false;
+                    const sameLocation =
+                        filtersA.provinsi  === filtersB.provinsi  &&
+                        filtersA.kabupaten === filtersB.kabupaten &&
+                        filtersA.kecamatan === filtersB.kecamatan &&
+                        filtersA.puskesmas === filtersB.puskesmas;
+                    const diffYear = JSON.stringify(filtersA.tahun.slice().sort()) !== JSON.stringify(filtersB.tahun.slice().sort());
+                    return sameLocation && diffYear;
+                } catch (e) {
+                    console.error("Kesalahan memo komparasi waktu:", e);
+                    return false;
+                }
+            }, [isComparing, filtersA, filtersB]);
+
+            return (
+                <div className="flex-1 flex flex-col gap-4 relative z-10">
+                    {title && <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <Icon name="bar-chart" className="w-5 h-5 text-indigo-500" />
+                        {title}
+                    </h3>}
+
+                    <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
+                        <MetricCard label="Total TPP" iconName="database" unit="Unit"
+                            value={kpis.total}
+                            compValue={comparisonTargetKPIs?.total}
+                            accentColor="indigo"
+                            isComparing={isComparing} isTimeCompare={isTimeCompare}
+                        />
+                        <MetricCard label="MS Inspeksi Kesling" iconName="check-circle" unit="Unit"
+                            value={kpis.valIKL} percentage={kpis.pctIKL}
+                            compValue={comparisonTargetKPIs?.pctIKL}
+                            accentColor="emerald"
+                            isComparing={isComparing} isTimeCompare={isTimeCompare}
+                        />
+                        <MetricCard label="MS Peningkatan Kapasitas" iconName="bar-chart-2" unit="Unit"
+                            value={kpis.valKapasitas} percentage={kpis.pctKapasitas}
+                            compValue={comparisonTargetKPIs?.pctKapasitas}
+                            accentColor="sky"
+                            isComparing={isComparing} isTimeCompare={isTimeCompare}
+                        />
+                        <MetricCard label="MS Pemeriksaan Pangan" iconName="shield" unit="Unit"
+                            value={kpis.valPangan} percentage={kpis.pctPangan}
+                            compValue={comparisonTargetKPIs?.pctPangan}
+                            accentColor="amber"
+                            isComparing={isComparing} isTimeCompare={isTimeCompare}
+                        />
+                        <div className="col-span-2 xl:col-span-1">
+                            <MetricCard label="TPP Memenuhi Syarat (Total)" iconName="award" unit="Unit"
+                                value={kpis.valTPP} percentage={kpis.pctTPP}
+                                compValue={comparisonTargetKPIs?.pctTPP}
+                                accentColor="violet"
+                                isComparing={isComparing} isTimeCompare={isTimeCompare}
+                            />
+                        </div>
+                    </div>
+                </div>
+            );
+        });
+
+        // ─────────────────────────────────────────────
+        // 6. TABEL DATA
+        // ─────────────────────────────────────────────
+        
+        const StatusBadge = memo(({ status }) => {
+            try {
+                if (!status || status === '-' || status === '') {
+                    return <span className="px-1.5 py-1 md:px-2 md:py-1.5 rounded text-[10px] md:text-xs font-medium bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 block text-center w-full leading-tight">N/A</span>;
+                }
+                
+                const lower = status.toLowerCase();
+                let colorClass = "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
+
+                if (lower.includes('tidak memenuhi')) {
+                    colorClass = "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-400 dark:border-rose-800/50";
+                } else if (lower.includes('memenuhi')) {
+                    colorClass = "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:border-emerald-800/50";
+                } else if (lower.includes('belum')) {
+                    colorClass = "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800/50";
+                }
+
+                return (
+                    <span className={`px-1.5 py-1 md:px-2 md:py-1.5 rounded text-[10px] md:text-xs font-semibold border ${colorClass} inline-block text-center w-full shadow-sm leading-tight`}>
+                        {status}
+                    </span>
+                );
+            } catch (err) {
+                console.error("Kesalahan StatusBadge:", err);
+                return <span>{status}</span>;
+            }
+        });
+
+        const SortableHeader = memo(({ label, sortKey, sortConfig, requestSort }) => {
+            const getSortIcon = () => {
+                if (sortConfig.key !== sortKey) return "chevrons-up-down";
+                return sortConfig.direction === 'asc' ? "chevron-up" : "chevron-down";
             };
 
-            const [isComparing, setIsComparing] = useState(false);
-            const [filtersA, setFiltersA] = useState(initialFilterState);
-            const [filtersB, setFiltersB] = useState(initialFilterState);
+            return (
+                <th 
+                    className="px-1.5 py-2 md:px-3 md:py-3.5 text-left text-[10px] md:text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/80 transition-colors select-none group align-middle touch-target"
+                    onClick={() => requestSort(sortKey)}
+                >
+                    <div className="flex items-center justify-between gap-1 md:gap-2">
+                        <span className="leading-tight">{label}</span>
+                        <Icon 
+                            name={getSortIcon()} 
+                            className={`w-3 h-3 md:w-3.5 md:h-3.5 flex-shrink-0 ${sortConfig.key === sortKey ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 opacity-50 group-hover:opacity-100'}`} 
+                        />
+                    </div>
+                </th>
+            );
+        });
 
-            // Terapkan Mode Gelap ke document root
+        const DataTable = memo(({ data, title }) => {
+            const [sortConfig, setSortConfig] = useState({ key: 'namaTPP', direction: 'asc' });
+
+            const requestSort = useCallback((key) => {
+                try {
+                    setSortConfig(current => {
+                        let direction = 'asc';
+                        if (current.key === key && current.direction === 'asc') {
+                            direction = 'desc';
+                        }
+                        return { key, direction };
+                    });
+                } catch (e) {
+                    console.error("Kesalahan fungsi pengurutan:", e);
+                }
+            }, []);
+
+            const sortedData = useMemo(() => {
+                try {
+                    let sortableItems = [...data];
+                    if (sortConfig !== null) {
+                        sortableItems.sort((a, b) => {
+                            const valA = (a[sortConfig.key] || '').toString().toLowerCase();
+                            const valB = (b[sortConfig.key] || '').toString().toLowerCase();
+                            
+                            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+                            if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+                            return 0;
+                        });
+                    }
+                    return sortableItems;
+                } catch (err) {
+                    console.error("Kesalahan pengurutan array:", err);
+                    return data;
+                }
+            }, [data, sortConfig]);
+
+            if (!data) return null;
+
+            return (
+                <div className="mt-6 flex flex-col glass-panel rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm relative z-10 w-full">
+                    <div className="px-4 py-3 md:px-5 md:py-4 border-b border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 flex items-center gap-2">
+                        <Icon name="table" className="w-4 h-4 md:w-5 md:h-5 text-indigo-500" />
+                        <h3 className="text-sm md:text-base font-bold text-slate-800 dark:text-white">{title}</h3>
+                        <span className="ml-auto bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 py-0.5 px-2 rounded-full text-[10px] md:text-xs font-bold">
+                            {data.length} Data
+                        </span>
+                    </div>
+                    
+                    <div className="table-container w-full overflow-x-auto bg-white/30 dark:bg-slate-800/30">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-slate-50 dark:bg-slate-800 sticky-header">
+                                <tr>
+                                    <th className="px-1.5 py-2 md:px-3 md:py-3.5 text-center text-[10px] md:text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider w-8">No</th>
+                                    <SortableHeader label="Nama TPP" sortKey="namaTPP" sortConfig={sortConfig} requestSort={requestSort} />
+                                    <SortableHeader label="Status IKL" sortKey="statusIKL" sortConfig={sortConfig} requestSort={requestSort} />
+                                    <SortableHeader label="Kapasitas" sortKey="statusKapasitas" sortConfig={sortConfig} requestSort={requestSort} />
+                                    <SortableHeader label="Pemeriksaan Pangan" sortKey="statusPangan" sortConfig={sortConfig} requestSort={requestSort} />
+                                    <SortableHeader label="Status TPP" sortKey="statusTPP" sortConfig={sortConfig} requestSort={requestSort} />
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200 dark:divide-slate-700/50">
+                                {sortedData.length > 0 ? (
+                                    sortedData.map((item, index) => (
+                                        <tr key={item.id} className="hover:bg-indigo-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                                            <td className="px-1.5 py-2 md:px-3 md:py-3 text-[10px] md:text-sm text-slate-500 dark:text-slate-400 text-center">{index + 1}</td>
+                                            <td className="px-1.5 py-2 md:px-3 md:py-3 text-xs md:text-sm font-semibold text-slate-800 dark:text-slate-200 min-w-[100px] max-w-[160px] md:max-w-[300px] whitespace-normal break-words leading-tight" title={item.namaTPP}>
+                                                {item.namaTPP || '-'}
+                                            </td>
+                                            <td className="px-1 py-1.5 md:px-3 md:py-3"><StatusBadge status={item.statusIKL} /></td>
+                                            <td className="px-1 py-1.5 md:px-3 md:py-3"><StatusBadge status={item.statusKapasitas} /></td>
+                                            <td className="px-1 py-1.5 md:px-3 md:py-3"><StatusBadge status={item.statusPangan} /></td>
+                                            <td className="px-1 py-1.5 md:px-3 md:py-3"><StatusBadge status={item.statusTPP} /></td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="6" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-sm">
+                                            <Icon name="search-x" className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                            Tidak ada data TPP yang sesuai dengan filter yang dipilih.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        });
+
+        // ─────────────────────────────────────────────
+        // 7. KOMPONEN UTAMA APP
+        // ─────────────────────────────────────────────
+        const App = () => {
+            const [rawData, setRawData]       = useState([]);
+            const [isLoading, setIsLoading]   = useState(true);
+            const [error, setError]           = useState(null);
+            const [lastSyncTime, setLastSyncTime] = useState('');
+
+            const [isDarkMode, setIsDarkMode] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('tpp-dark-mode');
+                    if (saved !== null) return saved === 'true';
+                    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+                } catch {
+                    return true;
+                }
+            });
+
+            const [isComparing, setIsComparing] = useState(false);
+            const [filtersA, setFiltersA] = useState(INITIAL_FILTER);
+            const [filtersB, setFiltersB] = useState(INITIAL_FILTER);
+
             useEffect(() => {
                 try {
                     if (isDarkMode) {
@@ -571,19 +918,19 @@
                     } else {
                         document.documentElement.classList.remove('dark');
                     }
+                    localStorage.setItem('tpp-dark-mode', String(isDarkMode));
                 } catch (e) {
-                    console.error("Theme Error:", e);
+                    console.error("Kesalahan memori tema:", e);
                 }
             }, [isDarkMode]);
 
-            // Pengambilan Data CSV
             useEffect(() => {
                 const fetchGoogleSheetData = async () => {
                     setIsLoading(true);
                     setError(null);
                     try {
                         const sheetId = "18U79MD3TdLgD5ruO42odAr8aIH34XxL23Jf-C9qhy7c";
-                        const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+                        const csvUrl  = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
 
                         Papa.parse(csvUrl, {
                             download: true,
@@ -592,52 +939,65 @@
                             complete: (results) => {
                                 try {
                                     if (results.errors.length > 0 && results.data.length === 0) {
-                                        throw new Error("Gagal membaca struktur CSV.");
+                                        throw new Error("Gagal membaca struktur CSV dari Google Sheet.");
                                     }
 
                                     const dataRows = results.data.slice(1);
 
-                                    const parsedData = dataRows.map((row, index) => {
-                                        const rawTahun = row[1] ? row[1].trim() : '';
-                                        const yearMatch = rawTahun.match(/\b(20\d{2})\b/);
-                                        const extractedTahun = yearMatch ? yearMatch[1] : rawTahun;
+                                    // Validasi keamanan: Pastikan file bukanlah HTML (terjadi jika Google memblokir akses)
+                                    if (dataRows.length > 0 && dataRows[0][0] && dataRows[0][0].toString().toLowerCase().includes('<!doctype')) {
+                                        throw new Error("Format file tidak valid. Pastikan link Google Sheet disetel ke 'Siapa saja yang memiliki link'.");
+                                    }
 
-                                        return {
-                                            id: index,
-                                            tahun: extractedTahun,                           // Kolom B
-                                            provinsi: row[2] ? row[2].trim() : '',           // Kolom C
-                                            kabupaten: row[3] ? row[3].trim() : '',          // Kolom D
-                                            kecamatan: row[4] ? row[4].trim() : '',          // Kolom E
-                                            puskesmas: row[7] ? row[7].trim() : '',          // Kolom H
-                                            jenisTPP: row[8] ? row[8].trim() : '',           // Kolom I
-                                            statusIKL: row[21] ? row[21].trim() : '',        // Kolom V
-                                            statusKapasitas: row[22] ? row[22].trim() : '',  // Kolom W
-                                            statusPangan: row[23] ? row[23].trim() : '',     // Kolom X
-                                            statusTPP: row[25] ? row[25].trim() : '',        // Kolom Z
-                                        };
-                                    }).filter(item => item.provinsi !== '' || item.tahun !== '');
+                                    // OPTIMASI: Menggunakan .reduce() agar pemrosesan & filtering dilakukan dalam 1 siklus
+                                    const parsedData = dataRows.reduce((acc, row, index) => {
+                                        try {
+                                            const provinsi = (row[2] || '').toString().trim();
+                                            const rawTahun = (row[1] || '').toString().trim();
+
+                                            // Abaikan baris yang benar-benar kosong
+                                            if (provinsi === '' && rawTahun === '') return acc;
+
+                                            const yearMatch = rawTahun.match(/\b(20\d{2})\b/);
+                                            
+                                            acc.push({
+                                                id: index,
+                                                tahun: yearMatch ? yearMatch[1] : rawTahun,
+                                                provinsi:        provinsi,
+                                                kabupaten:       (row[3] || '').toString().trim(),
+                                                kecamatan:       (row[4] || '').toString().trim(),
+                                                puskesmas:       (row[7] || '').toString().trim(),
+                                                jenisTPP:        (row[8] || '').toString().trim(),
+                                                namaTPP:         (row[9] || '').toString().trim(),
+                                                statusIKL:       (row[21] || '').toString().trim(),
+                                                statusKapasitas: (row[22] || '').toString().trim(),
+                                                statusPangan:    (row[23] || '').toString().trim(),
+                                                statusTPP:       (row[25] || '').toString().trim(),
+                                            });
+                                        } catch (parseRowErr) {
+                                            console.warn("Melewati baris rusak:", parseRowErr);
+                                        }
+                                        return acc;
+                                    }, []);
 
                                     setRawData(parsedData);
-                                    
-                                    const now = new Date();
-                                    setLastSyncTime(now.toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'long' }));
-                                    
+                                    setLastSyncTime(new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }));
                                     setIsLoading(false);
                                 } catch (parseError) {
-                                    console.error("Parse Error Details:", parseError);
-                                    setError("Gagal memproses susunan baris dan kolom data: " + parseError.message);
+                                    console.error("Kesalahan Parsing Data:", parseError);
+                                    setError("Gagal memproses data: " + parseError.message);
                                     setIsLoading(false);
                                 }
                             },
                             error: (err) => {
-                                console.error("PapaParse Network Error:", err);
-                                setError("Gagal mengunduh data dari Google Sheet. Pastikan akses Bagikan diatur ke 'Siapa saja yang memiliki link'.");
+                                console.error("Kesalahan Jaringan PapaParse:", err);
+                                setError("Gagal mengunduh data dari Google Sheet. Periksa koneksi internet Anda.");
                                 setIsLoading(false);
                             }
                         });
                     } catch (err) {
-                        console.error("System Error:", err);
-                        setError("Terjadi kesalahan sistem internal: " + err.message);
+                        console.error("Kesalahan Sistem Kritis:", err);
+                        setError("Terjadi kesalahan sistem: " + err.message);
                         setIsLoading(false);
                     }
                 };
@@ -647,7 +1007,6 @@
 
             const filteredDataA = useMemo(() => applyFilters(rawData, filtersA), [rawData, filtersA]);
             const filteredDataB = useMemo(() => applyFilters(rawData, filtersB), [rawData, filtersB]);
-
             const kpisA = useMemo(() => calculateKPIs(filteredDataA), [filteredDataA]);
             const kpisB = useMemo(() => calculateKPIs(filteredDataB), [filteredDataB]);
 
@@ -656,7 +1015,7 @@
                     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
                         <div className="spinner mb-4"></div>
                         <h2 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">Menghubungkan ke Database...</h2>
-                        <p className="text-slate-500 dark:text-slate-400 mt-2">Mengunduh dan memproses data terbaru.</p>
+                        <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Mengunduh dan memproses data terbaru secara aman.</p>
                     </div>
                 );
             }
@@ -664,118 +1023,148 @@
             if (error) {
                 return (
                     <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center bg-slate-50 dark:bg-slate-900">
-                        <div className="glass-panel p-8 rounded-2xl max-w-lg border border-rose-200 dark:border-rose-900">
-                            <Icon name="alert-triangle" className="w-16 h-16 text-rose-500 mx-auto mb-4" />
-                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Akses Data Gagal</h2>
+                        <div className="glass-panel p-6 md:p-8 rounded-2xl max-w-lg w-full border border-rose-200 dark:border-rose-900">
+                            <Icon name="alert-triangle" className="w-14 h-14 text-rose-500 mx-auto mb-4" />
+                            <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white mb-2">Akses Data Gagal</h2>
                             <p className="text-slate-600 dark:text-slate-300 text-sm mb-6">{error}</p>
-                            <p className="text-slate-700 dark:text-slate-400 text-xs text-left bg-rose-50 dark:bg-black dark:bg-opacity-30 p-4 rounded-xl border border-rose-100 dark:border-rose-900">
-                                <b className="text-rose-600 dark:text-rose-400">Solusi:</b> Buka link Google Sheet Anda, klik tombol "Bagikan" (Share) di pojok kanan atas, lalu ubah Akses Umum dari "Dibatasi" menjadi <b>"Siapa saja yang memiliki link"</b> (Anyone with the link). Kemudian muat ulang halaman ini.
-                            </p>
+                            <div className="text-left bg-rose-50 dark:bg-black/30 p-4 rounded-xl border border-rose-100 dark:border-rose-900 text-xs text-slate-700 dark:text-slate-400">
+                                <span className="font-bold text-rose-600 dark:text-rose-400">Solusi Cepat:</span> Buka Google Sheet, klik "Bagikan" → ubah akses menjadi <strong>"Siapa saja yang memiliki link"</strong> (Viewer), lalu muat ulang halaman ini.
+                            </div>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="mt-5 w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 touch-target"
+                            >
+                                <Icon name="refresh-cw" className="w-4 h-4" />
+                                Muat Ulang Aplikasi
+                            </button>
                         </div>
                     </div>
                 );
             }
 
             return (
-                <div className="p-4 md:p-8 max-w-screen-2xl mx-auto min-h-screen transition-colors duration-300">
-                    {/* Header Top Bar */}
-                    <div className="flex justify-end items-center mb-2">
-                        <button 
-                            onClick={() => {
-                                try {
-                                    setIsDarkMode(!isDarkMode)
-                                } catch(err) {
-                                    console.error("Theme toggle error:", err);
-                                }
-                            }}
-                            className="p-2 rounded-full glass-panel hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300 flex items-center"
+                <div className="p-3 md:p-6 lg:p-8 max-w-screen-2xl mx-auto min-h-screen transition-colors duration-300 overflow-x-hidden">
+
+                    {/* Top Bar: Tema & Info Sync */}
+                    <div className="flex justify-between items-center mb-4">
+                        <button
+                            onClick={() => { try { setIsDarkMode(d => !d); } catch(e) { console.error("Kesalahan tombol tema:", e); } }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all text-slate-600 dark:text-slate-300 text-xs font-medium backdrop-blur-sm shadow-sm touch-target"
                             title={isDarkMode ? "Beralih ke Mode Terang" : "Beralih ke Mode Gelap"}
+                            aria-label="Alihkan mode gelap/terang"
                         >
                             <Icon name={isDarkMode ? "sun" : "moon"} className="w-4 h-4" />
-                            <span className="ml-2 text-xs font-medium">{isDarkMode ? 'Mode Terang' : 'Mode Gelap'}</span>
+                            <span className="hidden sm:inline">{isDarkMode ? 'Mode Terang' : 'Mode Gelap'}</span>
                         </button>
+                        
+                        <p className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1.5 bg-white/40 dark:bg-slate-800/40 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50 backdrop-blur-sm">
+                            <Icon name="clock" className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="hidden sm:inline">Data Tersinkronisasi: </span>
+                            <span className="font-medium text-slate-600 dark:text-slate-400">{lastSyncTime || '—'}</span>
+                        </p>
                     </div>
 
-                    {/* Header */}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 bg-white dark:bg-slate-800 bg-opacity-50 dark:bg-opacity-50 p-6 rounded-2xl backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <div>
-                            <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-emerald-500 dark:from-indigo-400 dark:to-emerald-400 flex items-center">
-                                <Icon name="layout-dashboard" className="w-8 h-8 mr-3 text-indigo-500 dark:text-indigo-400" />
+                    {/* Header Utama */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 bg-white dark:bg-slate-800 bg-opacity-70 dark:bg-opacity-70 p-5 md:p-6 rounded-2xl backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div className="min-w-0">
+                            <h1 className="text-2xl md:text-3xl font-extrabold gradient-title flex items-center gap-2.5 flex-wrap">
+                                <span className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg">
+                                    <Icon name="layout-dashboard" className="w-6 h-6 md:w-7 md:h-7 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                                </span>
                                 Data TPP untuk FSVA
-                                <a 
-                                    href="https://docs.google.com/spreadsheets/d/18U79MD3TdLgD5ruO42odAr8aIH34XxL23Jf-C9qhy7c/edit?usp=sharing" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
-                                    title="Buka Google Sheet" 
-                                    className="ml-3 text-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-300 transition-colors cursor-pointer"
+                                <a
+                                    href="https://docs.google.com/spreadsheets/d/18U79MD3TdLgD5ruO42odAr8aIH34XxL23Jf-C9qhy7c/edit?usp=sharing"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Buka Google Sheet sumber data"
+                                    className="text-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-300 transition-colors bg-emerald-50 dark:bg-emerald-900/30 p-1.5 rounded-md touch-target inline-flex items-center justify-center"
+                                    aria-label="Buka Google Sheet"
                                 >
-                                    <Icon name="external-link" className="w-6 h-6" />
+                                    <Icon name="external-link" className="w-4 h-4 md:w-5 md:h-5" />
                                 </a>
                             </h1>
-                            <div className="mt-2 space-y-1">
-                                <p className="text-slate-500 dark:text-slate-500 text-xs flex items-center">
-                                    <Icon name="clock" className="w-3 h-3 mr-1" /> Sinkronisasi dengan Google Sheet: {lastSyncTime}
-                                </p>
-                            </div>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium">
+                                Memproses <strong className="text-indigo-600 dark:text-indigo-400">{new Intl.NumberFormat('id-ID').format(rawData.length)}</strong> entri data secara aman dan cepat
+                            </p>
                         </div>
-                        <button 
-                            onClick={() => {
-                                try {
-                                    setIsComparing(!isComparing);
-                                } catch(err) {
-                                    console.error("Compare toggle error:", err);
-                                }
-                            }}
-                            className={`px-5 py-2.5 rounded-xl font-bold transition-all flex items-center shadow-md ${isComparing ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/30' : 'bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600'}`}
+                        <button
+                            onClick={() => { try { setIsComparing(c => !c); } catch(err) { console.error("Kesalahan mode komparasi:", err); } }}
+                            className={`flex-shrink-0 px-5 md:px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2 shadow-md text-sm w-full sm:w-auto justify-center touch-target ${
+                                isComparing
+                                    ? 'bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white shadow-rose-500/30'
+                                    : 'bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white shadow-indigo-500/30'
+                            }`}
+                            aria-label={isComparing ? 'Tutup Pembanding' : 'Bandingkan Data'}
                         >
-                            <Icon name="git-compare" className="w-4 h-4 mr-2" />
-                            {isComparing ? 'Tutup Perbandingan' : 'Bandingkan Kriteria'}
+                            <Icon name={isComparing ? "x" : "git-compare"} className="w-4 h-4 flex-shrink-0" />
+                            {isComparing ? 'Tutup Pembanding' : 'Bandingkan Data'}
                         </button>
                     </div>
 
-                    {/* Main Content Area */}
-                    <div className="flex flex-col lg:flex-row gap-8">
+                    {/* Area Konten Utama */}
+                    <div className="flex flex-col lg:flex-row gap-6 md:gap-8 w-full relative">
                         {/* Kolom A */}
-                        <div className={`flex-1 flex flex-col transition-all duration-500 ${isComparing ? 'w-full lg:w-1/2' : 'w-full'}`}>
-                            <FilterGroup 
-                                data={rawData} 
-                                filters={filtersA} 
-                                setFilters={setFiltersA} 
-                                title={isComparing ? "Kriteria A" : "Filter Data TPP"} 
+                        <div className="flex-1 flex flex-col relative gap-2 min-w-0">
+                            <FilterGroup
+                                data={rawData}
+                                filters={filtersA}
+                                setFilters={setFiltersA}
+                                title={isComparing ? "Kriteria Kelompok A" : "Filter Data Dashboard"}
                             />
-                            <DashboardView 
-                                title={isComparing ? "Hasil Kriteria A" : null} 
+                            <DashboardView
+                                title={isComparing ? "Ringkasan Kelompok A" : null}
                                 kpis={kpisA}
-                                isComparing={false} 
+                                isComparing={false}
                             />
+                            {filtersA.kecamatan && (
+                                <DataTable 
+                                    data={filteredDataA} 
+                                    title={isComparing ? "Daftar TPP - Kelompok A" : "Daftar Seluruh TPP"} 
+                                />
+                            )}
                         </div>
 
-                        {/* Kolom B */}
+                        {/* Kolom B — Mode Perbandingan */}
                         {isComparing && (
-                            <div className="flex-1 flex flex-col border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-700 pt-8 lg:pt-0 lg:pl-8 transition-all duration-500 fade-enter-active">
-                                <FilterGroup 
-                                    data={rawData} 
-                                    filters={filtersB} 
-                                    setFilters={setFiltersB} 
-                                    title="Kriteria B (Pembanding)" 
+                            <div className="flex-1 flex flex-col border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-700 pt-6 lg:pt-0 lg:pl-8 relative gap-2 min-w-0">
+                                <FilterGroup
+                                    data={rawData}
+                                    filters={filtersB}
+                                    setFilters={setFiltersB}
+                                    title="Kriteria Kelompok B (Pembanding)"
                                 />
-                                <DashboardView 
-                                    title="Hasil Kriteria B vs A" 
+                                <DashboardView
+                                    title="Perbandingan Kelompok B vs A"
                                     kpis={kpisB}
                                     comparisonTargetKPIs={kpisA}
                                     isComparing={true}
                                     filtersA={filtersA}
                                     filtersB={filtersB}
                                 />
+                                {filtersB.kecamatan && (
+                                    <DataTable 
+                                        data={filteredDataB} 
+                                        title="Daftar TPP - Kelompok B" 
+                                    />
+                                )}
                             </div>
                         )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-10 pt-6 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400 dark:text-slate-500 pb-4">
+                        Aplikasi Dashboard TPP FSVA Interaktif &mdash; Data dikelola melalui Google Sheets
                     </div>
                 </div>
             );
         };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        try {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        } catch (e) {
+            console.error("Kesalahan kritis saat merender React:", e);
+        }
     </script>
 </body>
 </html>
