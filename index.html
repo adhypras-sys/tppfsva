@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Data TPP untuk FSVA</title>
     
     <!-- Tailwind CSS untuk Styling Modern & Responsif -->
@@ -39,10 +39,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <style>
-        /* Transisi Global Mulus */
+        /* Transisi Global Mulus & Proteksi Sentuhan Ganda */
         body {
             transition: background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1), color 0.6s cubic-bezier(0.16, 1, 0.3, 1);
             min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         /* TEMA TERANG (Default Modern Style) */
@@ -86,93 +88,75 @@
             box-shadow: 0 15px 35px -15px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(255, 255, 255, 0.02);
         }
 
-        /* Kustomisasi Scrollbar Minimalis */
+        /* Kustomisasi Scrollbar Minimalis & Touch Scroll untuk Mobile */
+        .touch-scroll {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.25); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
 
-        /* Animasi Transisi Dropdown Menu (Elastic Slide Down) */
+        /* Animasi Dropdown Menu */
         .dropdown-menu {
-            animation: dropdownBounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation: dropdownBounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             transform-origin: top;
         }
 
         @keyframes dropdownBounce {
-            from {
-                opacity: 0;
-                transform: scaleY(0.8) translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: scaleY(1) translateY(0);
-            }
+            from { opacity: 0; transform: scaleY(0.9) translateY(-8px); }
+            to { opacity: 1; transform: scaleY(1) translateY(0); }
         }
 
-        /* Animasi Slide-Up Lembut saat Konten Dimuat */
-        .slide-up {
-            animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+        /* Animasi Slide-Up & Fade In */
+        .slide-up { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
 
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Animasi Denyut Teks (Pulsing Glow) */
-        .pulse-text {
-            animation: pulseText 2s ease-in-out infinite;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
+
+        /* Animasi Denyut Teks */
+        .pulse-text { animation: pulseText 2s ease-in-out infinite; }
 
         @keyframes pulseText {
-            0%, 100% {
-                opacity: 0.7;
-                filter: drop-shadow(0 0 2px rgba(99, 102, 241, 0));
-            }
-            50% {
-                opacity: 1;
-                filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.4));
-            }
+            0%, 100% { opacity: 0.7; filter: drop-shadow(0 0 2px rgba(99, 102, 241, 0)); }
+            50% { opacity: 1; filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.4)); }
         }
 
-        /* Animasi Ring Spinner Mewah */
-        .spinner-ring {
-            position: relative;
-            width: 54px;
-            height: 54px;
-        }
+        /* Animasi Ring Spinner */
+        .spinner-ring { position: relative; width: 54px; height: 54px; }
         .spinner-ring div {
-            box-sizing: border-box;
-            display: block;
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border: 4px solid transparent;
-            border-radius: 50%;
+            box-sizing: border-box; display: block; position: absolute;
+            width: 100%; height: 100%; border: 4px solid transparent; border-radius: 50%;
             animation: ringRotate 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
         }
-        .spinner-ring div:nth-child(1) {
-            border-top-color: #6366f1;
-            animation-delay: -0.45s;
-        }
-        .spinner-ring div:nth-child(2) {
-            border-top-color: #10b981;
-            animation-delay: -0.3s;
-        }
-        .spinner-ring div:nth-child(3) {
-            border-top-color: #8b5cf6;
-            animation-delay: -0.15s;
-        }
+        .spinner-ring div:nth-child(1) { border-top-color: #6366f1; animation-delay: -0.45s; }
+        .spinner-ring div:nth-child(2) { border-top-color: #10b981; animation-delay: -0.3s; }
+        .spinner-ring div:nth-child(3) { border-top-color: #8b5cf6; animation-delay: -0.15s; }
 
         @keyframes ringRotate {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* MEDIA CETAK LAPORAN (PRINT-FRIENDLY CSS) */
+        @media print {
+            body { background: white !important; color: black !important; font-size: 12pt; padding: 0 !important; }
+            .no-print, button, select, input, a, header, .glass-panel { box-shadow: none !important; border: 1px solid #ccc !important; }
+            .no-print, button, select, input, a { display: none !important; }
+            .glass-panel {
+                background: white !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+                page-break-inside: avoid; margin-bottom: 20px !important;
+            }
+            .print-full-width { width: 100% !important; max-width: 100% !important; flex: none !important; }
         }
     </style>
 </head>
@@ -183,63 +167,107 @@
         const { useState, useEffect, useMemo, useRef } = React;
 
         // --- 0. FUNGSI UTILITAS FORMAT TEKS & ANGKA ---
-        
-        // Mengubah teks UPPERCASE menjadi Title Case (Huruf Kapital di Awal Kata)
         const toTitleCase = (str) => {
             try {
-                if (!str) return '';
-                let result = str
-                    .toLowerCase()
-                    .split(/\s+/)
-                    .map(word => {
-                        if (word.length === 0) return '';
-                        return word.charAt(0).toUpperCase() + word.slice(1);
-                    })
-                    .join(' ');
+                if (!str || typeof str !== 'string') return '';
+                let result = str.toLowerCase().split(/\s+/).map(word => {
+                    if (word.length === 0) return '';
+                    return word.charAt(0).toUpperCase() + word.slice(1);
+                }).join(' ');
                 
-                // Aturan khusus: Gunakan Upper Case hanya untuk pilihan DKI pada DKI Jakarta dan DI pada DI Yogyakarta
                 result = result.replace(/\bDki\b/g, 'DKI');
                 result = result.replace(/\bDi Yogyakarta\b/g, 'DI Yogyakarta');
-                
                 return result;
             } catch (err) {
                 console.error("Error in toTitleCase:", err);
-                return str;
+                return String(str) || '';
             }
         };
 
-        // Memformat angka bulat ke format Indonesia (titik sebagai pemisah ribuan)
         const formatIntegerID = (num) => {
             try {
                 if (num === undefined || num === null || isNaN(num)) return '0';
                 return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(num);
             } catch (err) {
-                console.error("Error in formatIntegerID:", err);
-                return String(num);
+                return String(num || 0);
             }
         };
 
-        // Memformat angka desimal ke format Indonesia dengan MAKSIMAL 2 angka di belakang koma (tanpa trailing zero berlebihan)
         const formatDecimalID = (num, maxDecimals = 2) => {
             try {
                 if (num === undefined || num === null || isNaN(num)) return '0';
-                return new Intl.NumberFormat('id-ID', { 
-                    minimumFractionDigits: 0, 
-                    maximumFractionDigits: maxDecimals 
-                }).format(num);
+                return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: maxDecimals }).format(num);
             } catch (err) {
-                console.error("Error in formatDecimalID:", err);
-                let formatted = Number(num).toFixed(maxDecimals);
-                if (formatted.indexOf('.') !== -1) {
-                    formatted = formatted.replace(/\.?0+$/, '');
-                }
+                let formatted = Number(num || 0).toFixed(maxDecimals);
+                if (formatted.indexOf('.') !== -1) formatted = formatted.replace(/\.?0+$/, '');
                 return formatted.replace('.', ',');
             }
         };
 
-        // --- 1. KOMPONEN UI KUSTOM ---
+        // --- 0b. KOMPONEN ANIMASI ANGKA ---
+        const AnimatedNumber = ({ value, isDecimal = false, maxDecimals = 2 }) => {
+            const [displayValue, setDisplayValue] = useState(value || 0);
+            const prevValueRef = useRef(value || 0);
 
-        // Komponen Ikon Vektor Lucide dengan penanganan siklus hidup yang dioptimalkan
+            useEffect(() => {
+                let animationFrameId;
+                try {
+                    const startValue = prevValueRef.current;
+                    const targetValue = value || 0;
+                    
+                    if (startValue === targetValue) {
+                        setDisplayValue(targetValue);
+                        return;
+                    }
+
+                    const duration = 400; 
+                    const startTime = performance.now();
+
+                    const easeOutQuad = (t) => {
+                        try { return t * (2 - t); } catch (e) { return t; }
+                    };
+
+                    const animate = (currentTime) => {
+                        try {
+                            const elapsedTime = currentTime - startTime;
+                            const progress = Math.min(elapsedTime / duration, 1);
+                            const easedProgress = easeOutQuad(progress);
+                            
+                            const currentValue = startValue + (targetValue - startValue) * easedProgress;
+                            setDisplayValue(currentValue);
+
+                            if (progress < 1) {
+                                animationFrameId = requestAnimationFrame(animate);
+                            } else {
+                                setDisplayValue(targetValue);
+                                prevValueRef.current = targetValue;
+                            }
+                        } catch (err) {
+                            setDisplayValue(targetValue);
+                            prevValueRef.current = targetValue;
+                        }
+                    };
+
+                    animationFrameId = requestAnimationFrame(animate);
+                } catch (error) {
+                    setDisplayValue(value || 0);
+                }
+
+                return () => {
+                    try { if (animationFrameId) cancelAnimationFrame(animationFrameId); } 
+                    catch (e) {}
+                };
+            }, [value]);
+
+            try {
+                if (isDecimal) return <span>{formatDecimalID(displayValue, maxDecimals)}</span>;
+                return <span>{formatIntegerID(displayValue)}</span>;
+            } catch (err) {
+                return <span>{isDecimal ? formatDecimalID(value, maxDecimals) : formatIntegerID(value)}</span>;
+            }
+        };
+
+        // --- 1. KOMPONEN UI KUSTOM ---
         const Icon = ({ name, className }) => {
             const containerRef = useRef(null);
             useEffect(() => {
@@ -252,229 +280,390 @@
                             root: containerRef.current
                         });
                     }
-                } catch (err) {
-                    console.error("Icon render error:", err);
-                }
+                } catch (err) { console.error(err); }
             }, [name, className]);
             return <span ref={containerRef} style={{ display: 'contents' }}></span>;
         };
 
-        // Custom Multi-Select Dropdown dengan Animasi & Z-Index Sempurna
-        const MultiSelect = ({ label, options, selectedValues, onChange, iconName }) => {
-            const [isOpen, setIsOpen] = useState(false);
+        // MultiSelect
+        const MultiSelect = ({ label, options, selectedValues, onChange, iconName, dropdownId, activeDropdown, setActiveDropdown }) => {
+            const [searchQuery, setSearchQuery] = useState("");
             const dropdownRef = useRef(null);
+            const isThisOpen = activeDropdown === dropdownId;
+
+            useEffect(() => {
+                try { if (!isThisOpen) setSearchQuery(""); } catch (e) {}
+            }, [isThisOpen]);
 
             useEffect(() => {
                 const handleClickOutside = (event) => {
                     try {
-                        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsOpen(false);
-                    } catch (err) {
-                        console.error("Error handling click outside:", err);
-                    }
+                        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                            if (activeDropdown === dropdownId) setActiveDropdown(null);
+                        }
+                    } catch (err) {}
                 };
                 document.addEventListener('mousedown', handleClickOutside);
-                return () => document.removeEventListener('mousedown', handleClickOutside);
-            }, []);
+                document.addEventListener('touchstart', handleClickOutside, { passive: true });
+                return () => {
+                    try {
+                        document.removeEventListener('mousedown', handleClickOutside);
+                        document.removeEventListener('touchstart', handleClickOutside);
+                    } catch(e) {}
+                };
+            }, [activeDropdown, dropdownId, setActiveDropdown]);
 
-            const toggleOption = (option) => {
+            const toggleOption = (option, e) => {
                 try {
+                    if (e) { e.stopPropagation(); e.preventDefault(); }
                     if (selectedValues.includes(option)) {
                         onChange(selectedValues.filter(item => item !== option));
                     } else {
                         onChange([...selectedValues, option]);
                     }
-                } catch (error) {
-                    console.error("Error toggling option:", error);
-                }
+                } catch (error) {}
             };
 
+            const filteredOptions = useMemo(() => {
+                try {
+                    if (!searchQuery) return options;
+                    return options.filter(opt => String(opt).toLowerCase().includes(searchQuery.toLowerCase()));
+                } catch (e) { return options; }
+            }, [options, searchQuery]);
+
             return (
-                <div className={`relative w-full transition-all duration-300 ${isOpen ? 'z-30' : 'z-10'}`} ref={dropdownRef}>
+                <div className={`relative w-full ${isThisOpen ? 'z-30' : 'z-10'}`} ref={dropdownRef}>
                     <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 mb-1.5 pl-1">
                         {iconName && <Icon name={iconName} className="w-3.5 h-3.5 mr-1.5 text-indigo-500/70 dark:text-indigo-400/70" />}
                         {label}
                     </label>
                     <div 
                         className={`glass-panel w-full rounded-xl px-3 py-2.5 flex justify-between items-center cursor-pointer min-h-[44px] transition-all duration-300 ${
-                            isOpen 
-                                ? 'border-indigo-500 ring-2 ring-indigo-500/10 dark:ring-indigo-400/20 bg-white/95 dark:bg-slate-900/90' 
+                            isThisOpen 
+                                ? 'border-indigo-500 ring-2 ring-indigo-500/10 dark:ring-indigo-400/20 bg-white/95 dark:bg-slate-900/95' 
                                 : 'hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-900/40'
                         }`}
-                        onClick={() => setIsOpen(!isOpen)}
+                        onClick={() => {
+                            try {
+                                if (isThisOpen) setActiveDropdown(null);
+                                else setActiveDropdown(dropdownId);
+                            } catch(e) {}
+                        }}
                     >
-                        <div className="flex-1 overflow-hidden whitespace-nowrap text-sm font-medium text-slate-700 dark:text-slate-200">
+                        <div className="flex-1 overflow-hidden whitespace-nowrap text-ellipsis text-sm font-medium text-slate-700 dark:text-slate-200 pr-2">
                             {selectedValues.length === 0 ? <span className="text-slate-400/80 dark:text-slate-500/80">Pilih {label}...</span> : selectedValues.join(', ')}
                         </div>
-                        <Icon name={isOpen ? "chevron-up" : "chevron-down"} className="w-4 h-4 text-slate-400 dark:text-slate-500 ml-2" />
+                        <Icon name={isThisOpen ? "chevron-up" : "chevron-down"} className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
                     </div>
 
-                    {isOpen && (
-                        <div className="absolute z-50 w-full mt-2 glass-panel rounded-xl shadow-2xl max-h-60 overflow-auto dropdown-menu border-indigo-500/20 bg-white/95 dark:bg-slate-900/95">
-                            {options.map((option, idx) => (
-                                <div 
-                                    key={idx} 
-                                    className="flex items-center p-3 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer text-slate-700 dark:text-slate-200 transition-colors duration-150"
-                                    onClick={() => toggleOption(option)}
-                                >
-                                    <input 
-                                        type="checkbox" 
-                                        className="mr-3 w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 focus:ring-opacity-50"
-                                        checked={selectedValues.includes(option)}
-                                        readOnly
-                                    />
-                                    <span className="text-sm font-medium">{option}</span>
-                                </div>
-                            ))}
+                    {isThisOpen && (
+                        <div className="absolute left-0 right-0 mt-2 glass-panel rounded-xl shadow-2xl flex flex-col dropdown-menu border-indigo-500/20 bg-white/95 dark:bg-slate-900/95 overflow-hidden">
+                            <div className="p-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 bg-white/50 dark:bg-slate-900/50">
+                                <Icon name="search" className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
+                                <input 
+                                    type="text" 
+                                    className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-800 dark:text-slate-150 text-sm py-1.5 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-indigo-500/50" 
+                                    placeholder={`Cari ${label}...`}
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()} 
+                                />
+                            </div>
+                            <div className="overflow-y-auto touch-scroll flex-1 p-1 max-h-[40vh] sm:max-h-60">
+                                {filteredOptions.map((option) => (
+                                    <div 
+                                        key={option} 
+                                        className="flex items-center p-2.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer text-slate-700 dark:text-slate-200 transition-colors duration-150 active:bg-indigo-100 dark:active:bg-indigo-900/60"
+                                        onClick={(e) => toggleOption(option, e)}
+                                    >
+                                        <div className="relative flex items-center justify-center w-5 h-5 mr-3 shrink-0">
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-full h-full rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 focus:ring-opacity-50 pointer-events-none"
+                                                checked={selectedValues.includes(option)}
+                                                readOnly
+                                            />
+                                        </div>
+                                        <span className="text-sm font-medium">{option}</span>
+                                    </div>
+                                ))}
+                                {filteredOptions.length === 0 && (
+                                    <div className="p-4 text-center text-sm text-slate-400">Tidak ada hasil cocok</div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
             );
         };
 
-        // Custom Single Select (Hierarchical) dengan Desain Presisi
-        const Select = ({ label, value, options, onChange, disabled, iconName }) => {
+        // Select komponen
+        const Select = ({ label, value, options, onChange, disabled, iconName, dropdownId, activeDropdown, setActiveDropdown }) => {
+            const [searchQuery, setSearchQuery] = useState("");
+            const dropdownRef = useRef(null);
+            const isThisOpen = activeDropdown === dropdownId;
+
+            useEffect(() => {
+                try { if (!isThisOpen) setSearchQuery(""); } catch (e) {}
+            }, [isThisOpen]);
+
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    try {
+                        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                            if (activeDropdown === dropdownId) setActiveDropdown(null);
+                        }
+                    } catch (err) {}
+                };
+                document.addEventListener('mousedown', handleClickOutside);
+                document.addEventListener('touchstart', handleClickOutside, { passive: true });
+                return () => {
+                    try {
+                        document.removeEventListener('mousedown', handleClickOutside);
+                        document.removeEventListener('touchstart', handleClickOutside);
+                    } catch(e) {}
+                };
+            }, [activeDropdown, dropdownId, setActiveDropdown]);
+
+            const filteredOptions = useMemo(() => {
+                try {
+                    if (!searchQuery) return options;
+                    return options.filter(opt => String(opt).toLowerCase().includes(searchQuery.toLowerCase()));
+                } catch (e) { return options; }
+            }, [options, searchQuery]);
+
+            const selectOption = (opt) => {
+                try {
+                    onChange(opt);
+                    setActiveDropdown(null);
+                } catch (err) {}
+            };
+
             return (
-                <div className="w-full">
+                <div className={`relative w-full ${isThisOpen ? 'z-30' : 'z-10'}`} ref={dropdownRef}>
                     <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 mb-1.5 pl-1">
                         {iconName && <Icon name={iconName} className="w-3.5 h-3.5 mr-1.5 text-indigo-500/70 dark:text-indigo-400/70" />}
                         {label}
                     </label>
-                    <div className="relative">
-                        <select 
-                            className={`w-full glass-panel rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 dark:focus:ring-indigo-400/20 appearance-none transition-all duration-300 ${
-                                disabled 
-                                    ? 'opacity-40 cursor-not-allowed bg-slate-100/50 dark:bg-slate-900/20' 
-                                    : 'cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-900/40'
-                            }`}
-                            value={value}
-                            onChange={(e) => {
-                                try {
-                                    onChange(e.target.value);
-                                } catch(err) {
-                                    console.error("Error selecting option:", err);
-                                }
-                            }}
-                            disabled={disabled}
-                        >
-                            <option value="" className="text-slate-800 dark:text-slate-900 font-medium">Semua {label}</option>
-                            {options.map((opt, idx) => (
-                                <option key={idx} value={opt} className="text-slate-800 dark:text-slate-900 font-medium">{opt}</option>
-                            ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 dark:text-slate-500">
-                            <Icon name="chevron-down" className="w-4 h-4" />
+                    <div 
+                        className={`glass-panel w-full rounded-xl px-3 py-2.5 flex justify-between items-center min-h-[44px] transition-all duration-300 ${
+                            disabled 
+                                ? 'opacity-50 cursor-not-allowed bg-slate-100/50 dark:bg-slate-900/20' 
+                                : 'cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-900/40'
+                        } ${isThisOpen ? 'border-indigo-500 ring-2 ring-indigo-500/10 dark:ring-indigo-400/20 bg-white/95 dark:bg-slate-900/95' : ''}`}
+                        onClick={() => {
+                            try {
+                                if (disabled) return;
+                                if (isThisOpen) setActiveDropdown(null);
+                                else setActiveDropdown(dropdownId);
+                            } catch (e) {}
+                        }}
+                    >
+                        <div className="flex-1 overflow-hidden whitespace-nowrap text-ellipsis text-sm font-medium text-slate-700 dark:text-slate-200 pr-2">
+                            {value ? value : <span className="text-slate-400/80 dark:text-slate-500/80">Semua {label}</span>}
                         </div>
+                        <Icon name={isThisOpen ? "chevron-up" : "chevron-down"} className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
                     </div>
+
+                    {isThisOpen && !disabled && (
+                        <div className="absolute left-0 right-0 mt-2 glass-panel rounded-xl shadow-2xl flex flex-col dropdown-menu border-indigo-500/20 bg-white/95 dark:bg-slate-900/95 overflow-hidden">
+                            <div className="p-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 bg-white/50 dark:bg-slate-900/50">
+                                <Icon name="search" className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
+                                <input 
+                                    type="text" 
+                                    className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-800 dark:text-slate-150 text-sm py-1.5 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-indigo-500/50" 
+                                    placeholder={`Cari ${label}...`}
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()}
+                                />
+                            </div>
+                            <div className="overflow-y-auto touch-scroll flex-1 p-1 max-h-[40vh] sm:max-h-60">
+                                <div 
+                                    className="p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-slate-500 dark:text-slate-400 text-sm font-semibold transition-colors"
+                                    onClick={() => selectOption("")}
+                                >
+                                    Semua {label}
+                                </div>
+                                {filteredOptions.map((option) => (
+                                    <div 
+                                        key={option} 
+                                        className={`p-2.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer text-sm font-medium transition-colors ${
+                                            value === option ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20' : 'text-slate-700 dark:text-slate-200'
+                                        }`}
+                                        onClick={() => selectOption(option)}
+                                    >
+                                        {option}
+                                    </div>
+                                ))}
+                                {filteredOptions.length === 0 && (
+                                    <div className="p-4 text-center text-sm text-slate-400">Tidak ada hasil cocok</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
 
         // --- 2. KOMPONEN FILTER UTAMA ---
-        const FilterGroup = ({ data, filters, setFilters, title }) => {
-            const years = useMemo(() => [...new Set(data.map(d => d.tahun).filter(Boolean))].sort(), [data]);
-            const jenisTPPs = useMemo(() => [...new Set(data.map(d => d.jenisTPP).filter(Boolean))].sort(), [data]);
+        const FilterGroup = ({ data, filters, setFilters, title, activeDropdown, setActiveDropdown, prefixId }) => {
             
-            const statusIKLOptions = useMemo(() => [...new Set(data.map(d => d.statusIKL).filter(Boolean))].sort(), [data]);
-            const statusKapOptions = useMemo(() => [...new Set(data.map(d => d.statusKapasitas).filter(Boolean))].sort(), [data]);
-            const statusPanganOptions = useMemo(() => [...new Set(data.map(d => d.statusPangan).filter(Boolean))].sort(), [data]);
+            const years = useMemo(() => {
+                try { return [...new Set(data.map(d => d.tahun).filter(Boolean))].sort(); } 
+                catch(e) { return []; }
+            }, [data]);
+            
+            const jenisTPPs = useMemo(() => {
+                try { return [...new Set(data.map(d => d.jenisTPP).filter(Boolean))].sort(); }
+                catch(e) { return []; }
+            }, [data]);
+            
+            const statusIKLOptions = useMemo(() => {
+                try { return [...new Set(data.map(d => d.statusIKL).filter(Boolean))].sort(); }
+                catch(e) { return []; }
+            }, [data]);
+            
+            const statusKapOptions = useMemo(() => {
+                try { return [...new Set(data.map(d => d.statusKapasitas).filter(Boolean))].sort(); }
+                catch(e) { return []; }
+            }, [data]);
+            
+            const statusPanganOptions = useMemo(() => {
+                try { return [...new Set(data.map(d => d.statusPangan).filter(Boolean))].sort(); }
+                catch(e) { return []; }
+            }, [data]);
 
-            const provs = useMemo(() => [...new Set(data.map(d => d.provinsi).filter(Boolean))].sort(), [data]);
+            const provs = useMemo(() => {
+                try { return [...new Set(data.map(d => d.provinsi).filter(Boolean))].sort(); }
+                catch(e) { return []; }
+            }, [data]);
+            
             const kabs = useMemo(() => {
-                let filtered = data;
-                if (filters.provinsi) filtered = filtered.filter(d => d.provinsi === filters.provinsi);
-                return [...new Set(filtered.map(d => d.kabupaten).filter(Boolean))].sort();
+                try {
+                    let filtered = data;
+                    if (filters.provinsi) filtered = filtered.filter(d => d.provinsi === filters.provinsi);
+                    return [...new Set(filtered.map(d => d.kabupaten).filter(Boolean))].sort();
+                } catch(e) { return []; }
             }, [data, filters.provinsi]);
+            
             const kecs = useMemo(() => {
-                let filtered = data;
-                if (filters.kabupaten) filtered = filtered.filter(d => d.kabupaten === filters.kabupaten);
-                else if (filters.provinsi) filtered = filtered.filter(d => d.provinsi === filters.provinsi);
-                return [...new Set(filtered.map(d => d.kecamatan).filter(Boolean))].sort();
+                try {
+                    let filtered = data;
+                    if (filters.kabupaten) filtered = filtered.filter(d => d.kabupaten === filters.kabupaten);
+                    else if (filters.provinsi) filtered = filtered.filter(d => d.provinsi === filters.provinsi);
+                    return [...new Set(filtered.map(d => d.kecamatan).filter(Boolean))].sort();
+                } catch(e) { return []; }
             }, [data, filters.provinsi, filters.kabupaten]);
+            
             const pusks = useMemo(() => {
-                let filtered = data;
-                if (filters.kecamatan) filtered = filtered.filter(d => d.kecamatan === filters.kecamatan);
-                else if (filters.kabupaten) filtered = filtered.filter(d => d.kabupaten === filters.kabupaten);
-                return [...new Set(filtered.map(d => d.puskesmas).filter(Boolean))].sort();
+                try {
+                    let filtered = data;
+                    if (filters.kecamatan) filtered = filtered.filter(d => d.kecamatan === filters.kecamatan);
+                    else if (filters.kabupaten) filtered = filtered.filter(d => d.kabupaten === filters.kabupaten);
+                    return [...new Set(filtered.map(d => d.puskesmas).filter(Boolean))].sort();
+                } catch(e) { return []; }
             }, [data, filters.kabupaten, filters.kecamatan]);
 
+            const activeFiltersCount = useMemo(() => {
+                try {
+                    let count = 0;
+                    if (filters.tahun && filters.tahun.length > 0) count++;
+                    if (filters.provinsi) count++;
+                    if (filters.kabupaten) count++;
+                    if (filters.kecamatan) count++;
+                    if (filters.puskesmas) count++;
+                    if (filters.jenisTPP) count++;
+                    if (filters.statusIKL && filters.statusIKL.length > 0) count++;
+                    if (filters.statusKapasitas && filters.statusKapasitas.length > 0) count++;
+                    if (filters.statusPangan && filters.statusPangan.length > 0) count++;
+                    return count;
+                } catch (e) { return 0; }
+            }, [filters]);
+
             return (
-                <div className="glass-panel p-6 rounded-3xl mb-6 relative z-20 border-slate-200/80 dark:border-white/10 shadow-xl shadow-slate-100/50 dark:shadow-black/20 hover:border-indigo-500/20 dark:hover:border-indigo-400/20">
-                    <h2 className="text-xl font-bold mb-5 text-indigo-600 dark:text-indigo-400 flex items-center">
-                        <span className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 mr-3 flex items-center justify-center">
-                            <Icon name="filter" className="w-5 h-5" />
-                        </span> 
-                        {title}
-                    </h2>
+                <div className="glass-panel p-4 sm:p-6 rounded-3xl mb-6 relative border-slate-200/80 dark:border-white/10 shadow-xl shadow-slate-100/50 dark:shadow-black/20 hover:border-indigo-500/20 dark:hover:border-indigo-400/20 transition-all duration-300">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-3">
+                        <h2 className="text-lg sm:text-xl font-bold text-indigo-600 dark:text-indigo-400 flex items-center">
+                            <span className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 mr-3 flex items-center justify-center">
+                                <Icon name="filter" className="w-5 h-5" />
+                            </span> 
+                            {title}
+                        </h2>
+                        {activeFiltersCount > 0 && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                                {activeFiltersCount} Filter Aktif
+                            </span>
+                        )}
+                    </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                        <MultiSelect 
-                            label="Tahun Input TPP" 
-                            iconName="calendar"
-                            options={years} 
-                            selectedValues={filters.tahun} 
-                            onChange={(val) => setFilters({...filters, tahun: val})} 
-                        />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                        <div className="col-span-1 sm:col-span-2 lg:col-span-1">
+                            <MultiSelect 
+                                label="Tahun Input TPP" iconName="calendar"
+                                options={years} selectedValues={filters.tahun || []} 
+                                onChange={(val) => { try { setFilters({...filters, tahun: val}) } catch(e){} }} 
+                                dropdownId={`${prefixId}-tahun`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
+                            />
+                        </div>
 
                         <Select 
-                            label="Provinsi" 
-                            iconName="map"
-                            options={provs} 
-                            value={filters.provinsi} 
-                            onChange={(val) => setFilters({...filters, provinsi: val, kabupaten: '', kecamatan: '', puskesmas: ''})} 
+                            label="Provinsi" iconName="map"
+                            options={provs} value={filters.provinsi || ""} 
+                            onChange={(val) => { try { setFilters({...filters, provinsi: val, kabupaten: '', kecamatan: '', puskesmas: ''}) } catch(e){} }} 
+                            dropdownId={`${prefixId}-provinsi`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
                         />
                         <Select 
-                            label="Kabupaten/Kota" 
-                            iconName="map-pin"
-                            options={kabs} 
-                            value={filters.kabupaten} 
-                            onChange={(val) => setFilters({...filters, kabupaten: val, kecamatan: '', puskesmas: ''})} 
+                            label="Kabupaten/Kota" iconName="map-pin"
+                            options={kabs} value={filters.kabupaten || ""} 
+                            onChange={(val) => { try { setFilters({...filters, kabupaten: val, kecamatan: '', puskesmas: ''}) } catch(e){} }} 
                             disabled={!filters.provinsi}
+                            dropdownId={`${prefixId}-kabupaten`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
                         />
                         <Select 
-                            label="Kecamatan" 
-                            iconName="compass"
-                            options={kecs} 
-                            value={filters.kecamatan} 
-                            onChange={(val) => setFilters({...filters, kecamatan: val, puskesmas: ''})} 
+                            label="Kecamatan" iconName="compass"
+                            options={kecs} value={filters.kecamatan || ""} 
+                            onChange={(val) => { try { setFilters({...filters, kecamatan: val, puskesmas: ''}) } catch(e){} }} 
                             disabled={!filters.kabupaten}
+                            dropdownId={`${prefixId}-kecamatan`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
                         />
                         <Select 
-                            label="Puskesmas" 
-                            iconName="building"
-                            options={pusks} 
-                            value={filters.puskesmas} 
-                            onChange={(val) => setFilters({...filters, puskesmas: val})} 
+                            label="Puskesmas" iconName="building"
+                            options={pusks} value={filters.puskesmas || ""} 
+                            onChange={(val) => { try { setFilters({...filters, puskesmas: val}) } catch(e){} }} 
                             disabled={!filters.kecamatan}
+                            dropdownId={`${prefixId}-puskesmas`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
                         />
+                        
+                        <div className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-1">
+                            <Select 
+                                label="Jenis TPP" iconName="utensils"
+                                options={jenisTPPs} value={filters.jenisTPP || ""} 
+                                onChange={(val) => { try { setFilters({...filters, jenisTPP: val}) } catch(e){} }} 
+                                dropdownId={`${prefixId}-jenisTPP`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
+                            />
+                        </div>
 
-                        <Select 
-                            label="Jenis TPP" 
-                            iconName="utensils"
-                            options={jenisTPPs} 
-                            value={filters.jenisTPP} 
-                            onChange={(val) => setFilters({...filters, jenisTPP: val})} 
-                        />
-
                         <MultiSelect 
-                            label="Status Inspeksi Kesling" 
-                            iconName="clipboard-check"
-                            options={statusIKLOptions} 
-                            selectedValues={filters.statusIKL} 
-                            onChange={(val) => setFilters({...filters, statusIKL: val})} 
+                            label="Status Inspeksi Kesling" iconName="clipboard-check"
+                            options={statusIKLOptions} selectedValues={filters.statusIKL || []} 
+                            onChange={(val) => { try { setFilters({...filters, statusIKL: val}) } catch(e){} }} 
+                            dropdownId={`${prefixId}-statusIKL`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
                         />
                         <MultiSelect 
-                            label="Status Peningkatan Kapasitas" 
-                            iconName="trending-up"
-                            options={statusKapOptions} 
-                            selectedValues={filters.statusKapasitas} 
-                            onChange={(val) => setFilters({...filters, statusKapasitas: val})} 
+                            label="Status Peningkatan Kapasitas" iconName="trending-up"
+                            options={statusKapOptions} selectedValues={filters.statusKapasitas || []} 
+                            onChange={(val) => { try { setFilters({...filters, statusKapasitas: val}) } catch(e){} }} 
+                            dropdownId={`${prefixId}-statusKapasitas`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
                         />
                         <MultiSelect 
-                            label="Status Pemeriksaan Pangan" 
-                            iconName="shield-check"
-                            options={statusPanganOptions} 
-                            selectedValues={filters.statusPangan} 
-                            onChange={(val) => setFilters({...filters, statusPangan: val})} 
+                            label="Status Pemeriksaan Pangan" iconName="shield-check"
+                            options={statusPanganOptions} selectedValues={filters.statusPangan || []} 
+                            onChange={(val) => { try { setFilters({...filters, statusPangan: val}) } catch(e){} }} 
+                            dropdownId={`${prefixId}-statusPangan`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
                         />
                     </div>
                     
@@ -486,13 +675,11 @@
                                         tahun: [], provinsi: '', kabupaten: '', kecamatan: '', puskesmas: '', 
                                         jenisTPP: '', statusIKL: [], statusKapasitas: [], statusPangan: []
                                     })
-                                } catch (err) {
-                                    console.error("Error resetting filter:", err);
-                                }
+                                } catch (err) {}
                             }}
-                            className="px-4 py-2 text-xs font-semibold rounded-lg text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 transition-all duration-300 flex items-center"
+                            className="px-4 py-2.5 min-h-[44px] text-xs font-bold rounded-xl text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 active:bg-indigo-100 dark:active:bg-indigo-900 transition-all duration-300 flex items-center shadow-sm active:scale-95"
                         >
-                            <Icon name="rotate-ccw" className="w-3.5 h-3.5 mr-1.5" />
+                            <Icon name="rotate-ccw" className="w-4 h-4 mr-2" />
                             Reset Kriteria
                         </button>
                     </div>
@@ -503,26 +690,25 @@
         // --- 3. FUNGSI UTILITAS PENGOLAHAN DATA ---
         const applyFilters = (data, filters) => {
             try {
+                if (!Array.isArray(data)) return [];
                 return data.filter(item => {
-                    if (filters.tahun.length > 0 && !filters.tahun.includes(item.tahun)) return false;
+                    if (filters.tahun && filters.tahun.length > 0 && !filters.tahun.includes(item.tahun)) return false;
                     if (filters.provinsi && item.provinsi !== filters.provinsi) return false;
                     if (filters.kabupaten && item.kabupaten !== filters.kabupaten) return false;
                     if (filters.kecamatan && item.kecamatan !== filters.kecamatan) return false;
                     if (filters.puskesmas && item.puskesmas !== filters.puskesmas) return false;
                     if (filters.jenisTPP && item.jenisTPP !== filters.jenisTPP) return false;
-                    if (filters.statusIKL.length > 0 && !filters.statusIKL.includes(item.statusIKL)) return false;
-                    if (filters.statusKapasitas.length > 0 && !filters.statusKapasitas.includes(item.statusKapasitas)) return false;
-                    if (filters.statusPangan.length > 0 && !filters.statusPangan.includes(item.statusPangan)) return false;
+                    if (filters.statusIKL && filters.statusIKL.length > 0 && !filters.statusIKL.includes(item.statusIKL)) return false;
+                    if (filters.statusKapasitas && filters.statusKapasitas.length > 0 && !filters.statusKapasitas.includes(item.statusKapasitas)) return false;
+                    if (filters.statusPangan && filters.statusPangan.length > 0 && !filters.statusPangan.includes(item.statusPangan)) return false;
                     return true;
                 });
-            } catch (error) {
-                console.error("Error applying filters:", error);
-                return [];
-            }
+            } catch (error) { return []; }
         };
 
         const calculateKPIs = (data) => {
             try {
+                if (!Array.isArray(data)) throw new Error("Data must be an array");
                 const total = data.length;
                 
                 const msIKL = data.filter(d => d.statusIKL && d.statusIKL.toLowerCase().includes('memenuhi') && !d.statusIKL.toLowerCase().includes('tidak memenuhi')).length;
@@ -533,27 +719,27 @@
                 return {
                     total,
                     valIKL: msIKL,
-                    pctIKL: total ? (msIKL / total) * 100 : 0,
+                    pctIKL: total > 0 ? (msIKL / total) * 100 : 0,
                     valKapasitas: msKapasitas,
-                    pctKapasitas: total ? (msKapasitas / total) * 100 : 0,
+                    pctKapasitas: total > 0 ? (msKapasitas / total) * 100 : 0,
                     valPangan: msPangan,
-                    pctPangan: total ? (msPangan / total) * 100 : 0,
+                    pctPangan: total > 0 ? (msPangan / total) * 100 : 0,
                     valTPP: msTPP,
-                    pctTPP: total ? (msTPP / total) * 100 : 0,
+                    pctTPP: total > 0 ? (msTPP / total) * 100 : 0,
                 };
             } catch (error) {
-                console.error("Error calculating KPIs:", error);
                 return { total: 0, valIKL: 0, pctIKL: 0, valKapasitas: 0, pctKapasitas: 0, valPangan: 0, pctPangan: 0, valTPP: 0, pctTPP: 0 };
             }
         };
 
         const getComparisonIndicator = (valA, valB, isTimeCompare) => {
             try {
+                if (valA === undefined || valB === undefined || isNaN(valA) || isNaN(valB)) return null;
                 if (valA === valB) return { text: 'Sama', color: 'text-slate-500 dark:text-slate-400 bg-slate-500/10', icon: 'minus' };
                 
                 const diff = valB - valA;
                 const isIncrease = valB > valA;
-                const formattedDiff = formatDecimalID(Math.abs(diff), 2); // Maksimal 2 desimal
+                const formattedDiff = formatDecimalID(Math.abs(diff), 2);
 
                 if (isTimeCompare) {
                     return {
@@ -568,10 +754,7 @@
                         icon: isIncrease ? 'arrow-up' : 'arrow-down'
                     };
                 }
-            } catch (err) {
-                console.error("Error getting comparison indicator:", err);
-                return null;
-            }
+            } catch (err) { return null; }
         };
 
         // --- 4. KOMPONEN VISUALISASI KARTU METRIK PREMIUM ---
@@ -580,13 +763,10 @@
             const isTimeCompare = useMemo(() => {
                 try {
                     if (!isComparing) return false;
-                    if (filtersA.provinsi !== filtersB.provinsi || filtersA.kabupaten !== filtersB.kabupaten) return false;
-                    if (JSON.stringify(filtersA.tahun) !== JSON.stringify(filtersB.tahun)) return true;
+                    if (filtersA?.provinsi !== filtersB?.provinsi || filtersA?.kabupaten !== filtersB?.kabupaten) return false;
+                    if (JSON.stringify(filtersA?.tahun) !== JSON.stringify(filtersB?.tahun)) return true;
                     return false;
-                } catch (err) {
-                    console.error("Error in isTimeCompare memo:", err);
-                    return false;
-                }
+                } catch (err) { return false; }
             }, [isComparing, filtersA, filtersB]);
 
             const MetricCard = ({ label, value, percentage, unit, compValue, iconName, themeGradient }) => {
@@ -596,39 +776,37 @@
                         const compareVal = percentage !== undefined ? percentage : value;
                         compInfo = getComparisonIndicator(Number(compValue), Number(compareVal), isTimeCompare);
                     }
-                } catch (err) {
-                    console.error("Error formatting metric card:", err);
-                }
-
-                const formattedValue = formatIntegerID(value);
-                const formattedPercentage = percentage !== undefined ? formatDecimalID(percentage, 2) : undefined;
+                } catch (err) {}
 
                 return (
-                    <div className="glass-panel p-6 rounded-3xl flex flex-col relative overflow-hidden group hover:-translate-y-1.5 duration-300 hover:shadow-2xl dark:hover:shadow-indigo-500/5 hover:border-indigo-500/25 dark:hover:border-indigo-400/25 h-full">
-                        {/* Soft Glow Radial Background on Hover */}
+                    <div className="glass-panel p-5 sm:p-6 rounded-3xl flex flex-col relative overflow-hidden group hover:-translate-y-1.5 duration-300 hover:shadow-2xl dark:hover:shadow-indigo-500/5 hover:border-indigo-500/25 dark:hover:border-indigo-400/25 h-full">
                         <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-5 dark:opacity-[0.08] blur-2xl group-hover:opacity-15 duration-500 bg-gradient-to-br ${themeGradient}`}></div>
                         
-                        <div className="flex justify-between items-start mb-4">
-                            <span className="text-slate-400 dark:text-slate-400 text-xs font-bold uppercase tracking-widest leading-normal">{label}</span>
+                        <div className="flex justify-between items-start mb-4 gap-2">
+                            <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest leading-relaxed flex-1">{label}</span>
                             {iconName && (
-                                <div className={`p-2.5 rounded-xl bg-gradient-to-br ${themeGradient} text-white flex items-center justify-center shadow-lg shadow-indigo-500/10 dark:shadow-indigo-500/2`}>
-                                    <Icon name={iconName} className="w-5 h-5" />
+                                <div className={`p-2 sm:p-2.5 rounded-xl bg-gradient-to-br ${themeGradient} text-white flex items-center justify-center shadow-lg shadow-indigo-500/10 dark:shadow-indigo-500/2 shrink-0`}>
+                                    <Icon name={iconName} className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
                             )}
                         </div>
                         
-                        <div className="flex items-baseline gap-2 mt-auto">
-                            <span className="text-4xl font-extrabold tracking-tight text-slate-800 dark:text-white group-hover:scale-[1.01] transition-transform duration-300">{formattedValue}</span>
-                            <span className="text-sm text-slate-400 dark:text-slate-500 font-semibold">{unit}</span>
+                        <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1 mt-auto">
+                            <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-800 dark:text-white group-hover:scale-[1.01] transition-transform duration-300">
+                                <AnimatedNumber value={value} isDecimal={false} />
+                            </span>
+                            <span className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-semibold">{unit}</span>
                             {percentage !== undefined && (
-                                <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400 ml-1.5">({formattedPercentage}%)</span>
+                                <span className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 ml-1 sm:ml-1.5">
+                                    (<AnimatedNumber value={percentage} isDecimal={true} maxDecimals={2} />%)
+                                </span>
                             )}
                         </div>
                         
                         {compInfo && (
-                            <div className="mt-4 pt-3.5 border-t border-slate-200/50 dark:border-slate-800/60 flex items-center justify-between text-xs font-bold">
+                            <div className="mt-4 pt-3.5 border-t border-slate-200/50 dark:border-slate-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs font-bold gap-2">
                                 <span className="text-slate-400 dark:text-slate-500">Selisih vs Kriteria A</span>
-                                <div className={`px-2.5 py-1 rounded-lg flex items-center gap-1 ${compInfo.color}`}>
+                                <div className={`px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 w-full sm:w-auto justify-center sm:justify-start ${compInfo.color}`}>
                                     <Icon name={compInfo.icon} className="w-3.5 h-3.5" />
                                     <span>{compInfo.text} {percentage !== undefined ? '%' : unit}</span>
                                 </div>
@@ -641,58 +819,29 @@
             return (
                 <div className="flex-1 flex flex-col gap-5 mt-2">
                     {title && (
-                        <h3 className="text-xl font-extrabold tracking-tight text-slate-800 dark:text-white mb-1 pl-1 flex items-center gap-2">
-                            <span className="w-1.5 h-6 rounded-full bg-indigo-500"></span>
+                        <h3 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-800 dark:text-white mb-1 pl-1 flex items-center gap-2">
+                            <span className="w-1.5 h-5 sm:h-6 rounded-full bg-indigo-500"></span>
                             {title}
                         </h3>
                     )}
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                        <MetricCard 
-                            label="Total TPP" 
-                            iconName="database" 
-                            value={kpis.total} 
-                            unit="Unit" 
-                            compValue={comparisonTargetKPIs?.total} 
-                            themeGradient="from-indigo-500 to-blue-600"
-                        />
-                        <MetricCard 
-                            label="Memenuhi Syarat Inspeksi Kesling" 
-                            iconName="check-circle" 
-                            value={kpis.valIKL} 
-                            percentage={kpis.pctIKL} 
-                            unit="Unit" 
-                            compValue={comparisonTargetKPIs?.pctIKL} 
-                            themeGradient="from-emerald-500 to-teal-600"
-                        />
-                        <MetricCard 
-                            label="Memenuhi Syarat Peningkatan Kapasitas" 
-                            iconName="bar-chart-2" 
-                            value={kpis.valKapasitas} 
-                            percentage={kpis.pctKapasitas} 
-                            unit="Unit" 
-                            compValue={comparisonTargetKPIs?.pctKapasitas} 
-                            themeGradient="from-amber-500 to-orange-600"
-                        />
-                        <MetricCard 
-                            label="Memenuhi Syarat Pemeriksaan Pangan" 
-                            iconName="shield" 
-                            value={kpis.valPangan} 
-                            percentage={kpis.pctPangan} 
-                            unit="Unit" 
-                            compValue={comparisonTargetKPIs?.pctPangan} 
-                            themeGradient="from-purple-500 to-fuchsia-600"
-                        />
-                        <MetricCard 
-                            label="TPP Memenuhi Syarat" 
-                            iconName="award" 
-                            value={kpis.valTPP} 
-                            percentage={kpis.pctTPP} 
-                            unit="Unit" 
-                            compValue={comparisonTargetKPIs?.pctTPP} 
-                            themeGradient="from-rose-500 to-pink-600"
-                        />
-                    </div>
+                    {kpis && kpis.total === 0 ? (
+                        <div className="glass-panel p-8 rounded-3xl flex flex-col items-center justify-center text-center border-dashed border-2 opacity-80 h-full min-h-[300px]">
+                            <div className="p-4 rounded-full bg-slate-100 dark:bg-slate-800 mb-4 text-slate-400">
+                                <Icon name="inbox" className="w-8 h-8" />
+                            </div>
+                            <h4 className="text-lg font-bold text-slate-600 dark:text-slate-300">Tidak Ada Data</h4>
+                            <p className="text-sm text-slate-500 mt-2">Kriteria filter yang dipilih tidak mengembalikan data apa pun.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                            <MetricCard label="Total TPP" iconName="database" value={kpis?.total} unit="Unit" compValue={comparisonTargetKPIs?.total} themeGradient="from-indigo-500 to-blue-600" />
+                            <MetricCard label="Memenuhi Syarat Inspeksi Kesling" iconName="check-circle" value={kpis?.valIKL} percentage={kpis?.pctIKL} unit="Unit" compValue={comparisonTargetKPIs?.pctIKL} themeGradient="from-emerald-500 to-teal-600" />
+                            <MetricCard label="Memenuhi Syarat Peningkatan Kapasitas" iconName="bar-chart-2" value={kpis?.valKapasitas} percentage={kpis?.pctKapasitas} unit="Unit" compValue={comparisonTargetKPIs?.pctKapasitas} themeGradient="from-amber-500 to-orange-600" />
+                            <MetricCard label="Memenuhi Syarat Pemeriksaan Pangan" iconName="shield" value={kpis?.valPangan} percentage={kpis?.pctPangan} unit="Unit" compValue={comparisonTargetKPIs?.pctPangan} themeGradient="from-purple-500 to-fuchsia-600" />
+                            <MetricCard label="TPP Memenuhi Syarat" iconName="award" value={kpis?.valTPP} percentage={kpis?.pctTPP} unit="Unit" compValue={comparisonTargetKPIs?.pctTPP} themeGradient="from-rose-500 to-pink-600" />
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -704,6 +853,16 @@
             const [error, setError] = useState(null);
             const [lastSyncTime, setLastSyncTime] = useState('');
             const [isDarkMode, setIsDarkMode] = useState(true);
+            const [activeDropdown, setActiveDropdown] = useState(null);
+
+            const [toastMsg, setToastMsg] = useState(null);
+
+            const showToast = (msg) => {
+                try {
+                    setToastMsg(msg);
+                    setTimeout(() => setToastMsg(null), 3500);
+                } catch(e) {}
+            };
 
             const initialFilterState = {
                 tahun: [], provinsi: '', kabupaten: '', kecamatan: '', puskesmas: '',
@@ -714,19 +873,74 @@
             const [filtersA, setFiltersA] = useState(initialFilterState);
             const [filtersB, setFiltersB] = useState(initialFilterState);
 
+            // Pembacaan URL Hash Awal (Hanya dipanggil sekali saat mount)
             useEffect(() => {
                 try {
-                    if (isDarkMode) {
-                        document.documentElement.classList.add('dark');
-                    } else {
-                        document.documentElement.classList.remove('dark');
+                    const hash = window.location.hash;
+                    if (hash && hash.length > 1) {
+                        const cleanHash = decodeURIComponent(hash.substring(1));
+                        try {
+                            const state = JSON.parse(cleanHash);
+                            if (state && typeof state === 'object') {
+                                if (state.filtersA) setFiltersA(state.filtersA);
+                                if (state.filtersB) setFiltersB(state.filtersB);
+                                if (typeof state.isComparing === 'boolean') setIsComparing(state.isComparing);
+                                showToast("Visualisasi diselaraskan dari tautan berhasil.");
+                            }
+                        } catch (jsonErr) {}
                     }
-                } catch (e) {
-                    console.error("Theme Error:", e);
-                }
-            }, [isDarkMode]);
+                } catch (e) {}
+            }, []);
+
+            // Solusi untuk mencegah History Loop Spamming (Refresh otomatis pada mobile)
+            useEffect(() => {
+                try {
+                    if (rawData.length > 0) {
+                        const state = { filtersA, filtersB, isComparing };
+                        const newHashString = `#${encodeURIComponent(JSON.stringify(state))}`;
+                        // Hanya timpa hash jika benar-benar ada perubahan state untuk mencegah spam
+                        if (window.location.hash !== newHashString) {
+                            window.history.replaceState(null, '', newHashString);
+                        }
+                    }
+                } catch(e) { console.error("URL Hash error:", e); }
+            }, [filtersA, filtersB, isComparing, rawData]);
+
+            const handleShareLink = () => {
+                try {
+                    const currentUrl = window.location.href;
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(currentUrl).then(() => {
+                            showToast("Tautan konfigurasi disalin ke clipboard! Siap dibagikan.");
+                        }).catch(() => fallbackCopyText(currentUrl));
+                    } else fallbackCopyText(currentUrl);
+                } catch (err) { showToast("Gagal menyalin tautan."); }
+            };
+
+            const fallbackCopyText = (text) => {
+                try {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed"; 
+                    document.body.appendChild(textArea);
+                    textArea.focus(); textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    showToast("Tautan berhasil disalin! (Metode standar)");
+                } catch (e) { showToast("Gagal menyalin teks."); }
+            };
 
             useEffect(() => {
+                try {
+                    if (isDarkMode) document.documentElement.classList.add('dark');
+                    else document.documentElement.classList.remove('dark');
+                } catch (e) {}
+            }, [isDarkMode]);
+
+            // ALGORITMA FETCH BARU (Mencegah Silent Network Hang/Infinite Loading Screen)
+            useEffect(() => {
+                let isMounted = true;
+
                 const fetchGoogleSheetData = async () => {
                     setIsLoading(true);
                     setError(null);
@@ -734,66 +948,117 @@
                         const sheetId = "18U79MD3TdLgD5ruO42odAr8aIH34XxL23Jf-C9qhy7c";
                         const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
 
-                        Papa.parse(csvUrl, {
-                            download: true,
+                        // Fetch manual untuk memastikan kita tidak terjebak loop XMLHttpRequest PapaParse
+                        const response = await fetch(csvUrl, { cache: 'no-store' });
+                        if (!response.ok) throw new Error(`Status HTTP tidak valid: ${response.status}`);
+                        const csvText = await response.text();
+
+                        if (!isMounted) return;
+
+                        Papa.parse(csvText, {
                             header: true,
                             skipEmptyLines: true,
                             complete: (results) => {
                                 try {
-                                    if (results.errors.length > 0 && results.data.length === 0) {
-                                        throw new Error("Gagal membaca struktur CSV.");
+                                    if (!isMounted) return;
+                                    
+                                    if (results.errors.length > 0 && (!results.data || results.data.length === 0)) {
+                                        throw new Error("Gagal membaca struktur atau data CSV kosong.");
                                     }
 
-                                    // Transformasi data berbasis nama kolom serta konversi format Title Case
+                                    const keys = Object.keys(results.data[0] || {});
+                                    if (keys.length === 0) throw new Error("Format CSV tidak memiliki kolom penanda (header).");
+
+                                    const findColIdx = (keywords, defaultIdx) => {
+                                        try {
+                                            const idx = keys.findIndex(key => keywords.some(kw => key.toLowerCase().includes(kw.toLowerCase())));
+                                            return idx !== -1 ? idx : defaultIdx;
+                                        } catch (e) { return defaultIdx; }
+                                    };
+
+                                    const indices = {
+                                        tahun: findColIdx(["tahun", "year"], 1),
+                                        provinsi: findColIdx(["provinsi", "province"], 2),
+                                        kabupaten: findColIdx(["kabupaten", "kota", "regency", "city"], 3),
+                                        kecamatan: findColIdx(["kecamatan", "district"], 4),
+                                        puskesmas: findColIdx(["puskesmas", "pkm", "clinic"], 7),
+                                        jenisTPP: findColIdx(["jenis tpp", "jenis_tpp", "tipe tpp"], 8),
+                                        statusIKL: findColIdx(["ikl", "inspeksi kesling", "kesling"], 21),
+                                        statusKapasitas: findColIdx(["kapasitas", "peningkatan kapasitas", "pelatihan"], 22),
+                                        statusPangan: findColIdx(["pangan", "pemeriksaan pangan", "uji lab", "food"], 23),
+                                        statusTPP: findColIdx(["status tpp", "kesimpulan", "memenuhi syarat"], 25)
+                                    };
+
                                     const parsedData = results.data.map((row, index) => {
-                                        const keys = Object.keys(row);
-                                        const rawTahun = row[keys[1]] ? row[keys[1]].trim() : '';
+                                        const rowKeys = Object.keys(row);
+                                        const safeGet = (colIdx) => {
+                                            try {
+                                                return (rowKeys.length > colIdx && row[rowKeys[colIdx]] !== undefined && row[rowKeys[colIdx]] !== null) 
+                                                    ? String(row[rowKeys[colIdx]]).trim() : '';
+                                            } catch (e) { return ''; }
+                                        };
+                                        
+                                        const rawTahun = safeGet(indices.tahun);
                                         const yearMatch = rawTahun.match(/\b(20\d{2})\b/);
                                         const extractedTahun = yearMatch ? yearMatch[1] : rawTahun;
 
                                         return {
-                                            id: index,
-                                            tahun: extractedTahun,
-                                            provinsi: row[keys[2]] ? toTitleCase(row[keys[2]].trim()) : '',
-                                            kabupaten: row[keys[3]] ? toTitleCase(row[keys[3]].trim()) : '',
-                                            text: row[keys[4]] ? toTitleCase(row[keys[4]].trim()) : '',
-                                            kecamatan: row[keys[4]] ? toTitleCase(row[keys[4]].trim()) : '',
-                                            puskesmas: row[keys[7]] ? toTitleCase(row[keys[7]].trim()) : '',
-                                            
-                                            jenisTPP: row[keys[8]] ? row[keys[8]].trim() : '',
-                                            statusIKL: row[keys[21]] ? row[keys[21]].trim() : '',
-                                            statusKapasitas: row[keys[22]] ? row[keys[22]].trim() : '',
-                                            statusPangan: row[keys[23]] ? row[keys[23]].trim() : '',
-                                            statusTPP: row[keys[25]] ? row[keys[25]].trim() : '',
+                                            id: index, tahun: extractedTahun,
+                                            provinsi: toTitleCase(safeGet(indices.provinsi)), kabupaten: toTitleCase(safeGet(indices.kabupaten)),
+                                            kecamatan: toTitleCase(safeGet(indices.kecamatan)), puskesmas: toTitleCase(safeGet(indices.puskesmas)),
+                                            jenisTPP: safeGet(indices.jenisTPP), statusIKL: safeGet(indices.statusIKL),
+                                            statusKapasitas: safeGet(indices.statusKapasitas), statusPangan: safeGet(indices.statusPangan),
+                                            statusTPP: safeGet(indices.statusTPP),
                                         };
                                     }).filter(item => item.provinsi !== '' || item.tahun !== '');
 
+                                    if (parsedData.length === 0) throw new Error("Kemungkinan struktur kolom pada Google Sheet berubah.");
+
                                     setRawData(parsedData);
-                                    
                                     const now = new Date();
                                     setLastSyncTime(now.toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'long' }));
-                                    
                                     setIsLoading(false);
                                 } catch (parseError) {
-                                    console.error("Parse Error Details:", parseError);
-                                    setError("Gagal memproses susunan data: " + parseError.message);
-                                    setIsLoading(false);
+                                    if (isMounted) {
+                                        setError("Kendala validasi data: " + parseError.message);
+                                        setIsLoading(false);
+                                    }
                                 }
                             },
                             error: (err) => {
-                                console.error("PapaParse Network Error:", err);
-                                setError("Gagal mengunduh data dari Google Sheet. Pastikan akses Bagikan diatur ke 'Siapa saja yang memiliki link'.");
-                                setIsLoading(false);
+                                if (isMounted) {
+                                    setError("Koneksi gagal. Pastikan dokumen diatur ke 'Siapa saja yang memiliki link'.");
+                                    setIsLoading(false);
+                                }
                             }
                         });
                     } catch (err) {
-                        console.error("System Error:", err);
-                        setError("Terjadi kesalahan sistem internal: " + err.message);
-                        setIsLoading(false);
+                        if (isMounted) {
+                            setError("Jaringan gagal: " + err.message);
+                            setIsLoading(false);
+                        }
                     }
                 };
 
                 fetchGoogleSheetData();
+
+                // Pengaman Anti-Infinite-Loading
+                const fallbackTimeout = setTimeout(() => {
+                    if (isMounted) {
+                        setIsLoading(prev => {
+                            if (prev) {
+                                setError("Waktu tunggu pemuatan habis (Timeout 15s). Periksa koneksi internet Anda atau coba muat ulang.");
+                                return false; // Putus loop loading secara paksa
+                            }
+                            return prev;
+                        });
+                    }
+                }, 15000);
+
+                return () => {
+                    isMounted = false;
+                    clearTimeout(fallbackTimeout);
+                };
             }, []);
 
             const filteredDataA = useMemo(() => applyFilters(rawData, filtersA), [rawData, filtersA]);
@@ -804,145 +1069,148 @@
 
             if (isLoading) {
                 return (
-                    <div className="flex flex-col items-center justify-center min-h-screen bg-[#060913] text-white">
-                        <div className="spinner-ring mb-6">
+                    <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-[#060913] text-white">
+                        <div className="spinner-ring mb-6 scale-90 sm:scale-100">
                             <div></div><div></div><div></div>
                         </div>
-                        <h2 className="text-xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 pulse-text">
+                        <h2 className="text-lg sm:text-xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 pulse-text px-4 text-center">
                             Terhubung dengan Google Sheet
                         </h2>
-                        <p className="text-slate-500 text-sm mt-1.5 font-medium tracking-wide">Sinkronisasi data</p>
+                        <p className="text-slate-500 text-xs sm:text-sm mt-2 font-medium tracking-wide">Sinkronisasi data berlangsung...</p>
                     </div>
                 );
             }
 
             if (error) {
                 return (
-                    <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
-                        <div className="glass-panel p-8 rounded-3xl max-w-lg border border-rose-500/20 dark:border-rose-500/30 shadow-2xl">
-                            <div className="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-rose-500/5">
-                                <Icon name="alert-triangle" className="w-8 h-8" />
+                    <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 text-center">
+                        <div className="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg border border-rose-500/20 dark:border-rose-500/30 shadow-2xl mx-auto w-full fade-in">
+                            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-rose-500/5">
+                                <Icon name="alert-triangle" className="w-7 h-7 sm:w-8 sm:h-8" />
                             </div>
-                            <h2 className="text-2xl font-extrabold text-slate-800 dark:text-white mb-2 tracking-tight">Akses Data Gagal</h2>
+                            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-white mb-2 tracking-tight">Akses Data Gagal</h2>
                             <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 font-medium leading-relaxed">{error}</p>
-                            <p className="text-slate-600 dark:text-slate-300 text-xs text-left bg-rose-50/50 dark:bg-black/30 p-5 rounded-2xl border border-rose-100 dark:border-rose-950/40 leading-relaxed shadow-inner">
-                                <b className="text-rose-600 dark:text-rose-400 font-bold block mb-1">💡 Solusi Cepat:</b> Buka link Google Sheet Anda, klik tombol "Bagikan" (Share) di pojok kanan atas, lalu ubah Akses Umum dari "Dibatasi" menjadi <b>"Siapa saja yang memiliki link"</b> (Anyone with the link). Kemudian muat ulang halaman ini.
-                            </p>
+                            <div className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm text-left bg-rose-50/50 dark:bg-black/30 p-4 sm:p-5 rounded-2xl border border-rose-100 dark:border-rose-950/40 leading-relaxed shadow-inner">
+                                <b className="text-rose-600 dark:text-rose-400 font-bold block mb-1">💡 Solusi Cepat:</b> Buka tautan Google Sheet Anda, klik tombol "Bagikan" (Share) di pojok kanan atas, lalu pastikan Akses Umum adalah <b>"Siapa saja yang memiliki link"</b>. Kemudian muat ulang halaman.
+                            </div>
                         </div>
                     </div>
                 );
             }
 
             return (
-                <div className="p-4 md:p-8 max-w-screen-2xl mx-auto min-h-screen transition-colors duration-500 slide-up">
+                <div className="p-3 pb-safe sm:p-4 md:p-8 max-w-[1600px] mx-auto min-h-screen transition-colors duration-500 slide-up relative fade-in">
                     
-                    {/* Header Kontainer Utama (Premium Glassmorphism Header) */}
-                    <div className="flex flex-col mb-8 bg-white/40 dark:bg-slate-900/40 p-6 rounded-3xl backdrop-blur-md border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-100/30 dark:shadow-black/10 gap-5 relative overflow-hidden group">
-                        {/* Ambient glow decoration */}
+                    {/* CUSTOM UI TOAST NOTIFICATION */}
+                    {toastMsg && (
+                        <div className="fixed bottom-8 right-4 sm:right-8 z-50 max-w-sm sm:max-w-md px-5 py-4 rounded-2xl glass-panel border-indigo-500/30 dark:border-indigo-400/40 shadow-2xl bg-white/95 dark:bg-slate-900/95 flex items-center gap-3 animate-bounce">
+                            <div className="p-2 rounded-xl bg-indigo-500 text-white flex items-center justify-center shrink-0">
+                                <Icon name="info" className="w-4 h-4" />
+                            </div>
+                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-snug">{toastMsg}</span>
+                        </div>
+                    )}
+
+                    {/* Header Kontainer Utama */}
+                    <header className="flex flex-col mb-6 sm:mb-8 bg-white/40 dark:bg-slate-900/40 p-5 sm:p-6 rounded-3xl backdrop-blur-md border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-100/30 dark:shadow-black/10 gap-5 relative overflow-hidden group">
                         <div className="absolute -top-32 -left-32 w-64 h-64 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none group-hover:scale-125 duration-700"></div>
                         <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-emerald-500/5 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none group-hover:scale-125 duration-700"></div>
 
-                        <div className="relative z-10">
-                            <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 dark:from-indigo-400 dark:via-purple-400 dark:to-emerald-400 flex items-center tracking-tight leading-none">
-                                <span className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl shadow-lg shadow-indigo-500/20 mr-3.5 flex items-center justify-center">
-                                    <Icon name="layout-dashboard" className="w-7 h-7" />
-                                </span>
-                                Data TPP untuk FSVA
-                            </h1>
-                            <div className="mt-2.5">
-                                <p className="text-slate-400 dark:text-slate-400 text-xs flex items-center font-semibold tracking-wider uppercase">
-                                    <Icon name="clock" className="w-3.5 h-3.5 mr-1.5 text-indigo-500" /> Sinkronisasi Google Sheet: {lastSyncTime}
-                                </p>
+                        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h1 className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 dark:from-indigo-400 dark:via-purple-400 dark:to-emerald-400 flex items-center tracking-tight leading-tight">
+                                    <span className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-xl sm:rounded-2xl shadow-lg shadow-indigo-500/20 mr-3 flex items-center justify-center shrink-0">
+                                        <Icon name="layout-dashboard" className="w-6 h-6 sm:w-7 sm:h-7" />
+                                    </span>
+                                    Data TPP untuk FSVA
+                                </h1>
+                                <div className="mt-3 sm:mt-2.5">
+                                    <p className="text-slate-500 dark:text-slate-400 text-xs flex items-center font-semibold tracking-wider uppercase">
+                                        <Icon name="clock" className="w-3.5 h-3.5 mr-1.5 text-indigo-500 shrink-0" /> 
+                                        <span className="truncate">Sinkronisasi: {lastSyncTime}</span>
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Baris Tombol Aksi - Selalu satu baris di bawah informasi sinkronisasi */}
-                        <div className="flex flex-wrap items-center gap-3.5 pt-4.5 border-t border-slate-200/60 dark:border-slate-800/60 relative z-10">
+                        {/* Baris Tombol Aksi */}
+                        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 pt-4 border-t border-slate-200/60 dark:border-slate-800/60 relative z-10 no-print">
                             
-                            {/* Tombol 1: Buka Spreadsheet */}
                             <a 
                                 href="https://docs.google.com/spreadsheets/d/18U79MD3TdLgD5ruO42odAr8aIH34XxL23Jf-C9qhy7c/edit?usp=sharing" 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="flex items-center justify-center gap-2 px-4.5 py-2.5 text-sm font-bold rounded-xl bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-500 dark:hover:border-emerald-400/50 hover:bg-emerald-500/[0.04] dark:hover:bg-emerald-500/[0.04] transition-all duration-300 shadow-sm active:scale-95"
-                                title="Buka Google Sheet"
+                                target="_blank" rel="noopener noreferrer" 
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 min-h-[44px] text-sm font-bold rounded-xl bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-500 dark:hover:border-emerald-400/50 hover:bg-emerald-500/[0.04] dark:hover:bg-emerald-500/[0.04] transition-all duration-300 shadow-sm active:scale-95"
                             >
-                                <Icon name="external-link" className="w-4 h-4 text-emerald-500" />
-                                <span className="hidden sm:inline">Buka Spreadsheet</span>
+                                <Icon name="external-link" className="w-4 h-4 text-emerald-500 shrink-0" />
+                                <span>Buka Spreadsheet</span>
                             </a>
 
-                            {/* Tombol 2: Ubah Tema */}
                             <button 
-                                onClick={() => {
-                                    try {
-                                        setIsDarkMode(!isDarkMode)
-                                    } catch(err) {
-                                        console.error("Theme toggle error:", err);
-                                    }
-                                }}
-                                className="flex items-center justify-center gap-2 px-4.5 py-2.5 text-sm font-bold rounded-xl bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 hover:border-amber-500 dark:hover:border-yellow-400/50 hover:bg-amber-500/[0.04] dark:hover:bg-yellow-400/[0.04] transition-all duration-300 shadow-sm active:scale-95"
-                                title={isDarkMode ? "Beralih ke Mode Terang" : "Beralih ke Mode Gelap"}
+                                onClick={() => { try { setIsDarkMode(!isDarkMode) } catch(err){} }}
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 min-h-[44px] text-sm font-bold rounded-xl bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 hover:border-amber-500 dark:hover:border-yellow-400/50 hover:bg-amber-500/[0.04] dark:hover:bg-yellow-400/[0.04] transition-all duration-300 shadow-sm active:scale-95"
                             >
-                                <Icon name={isDarkMode ? "sun" : "moon"} className="w-4 h-4 text-amber-500 dark:text-yellow-400" />
-                                <span className="hidden sm:inline">{isDarkMode ? 'Mode Terang' : 'Mode Gelap'}</span>
+                                <Icon name={isDarkMode ? "sun" : "moon"} className="w-4 h-4 text-amber-500 dark:text-yellow-400 shrink-0" />
+                                <span>{isDarkMode ? 'Mode Terang' : 'Mode Gelap'}</span>
                             </button>
 
-                            {/* Tombol 3: Bandingkan Kriteria */}
                             <button 
-                                onClick={() => {
-                                    try {
-                                        setIsComparing(!isComparing);
-                                    } catch(err) {
-                                        console.error("Compare toggle error:", err);
-                                    }
-                                }}
-                                className={`flex items-center justify-center gap-2 px-4.5 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 shadow-sm active:scale-95 ${
+                                onClick={handleShareLink}
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 min-h-[44px] text-sm font-bold rounded-xl bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-500 dark:hover:border-indigo-400/50 hover:bg-indigo-500/[0.04] dark:hover:bg-indigo-400/[0.04] transition-all duration-300 shadow-sm active:scale-95"
+                            >
+                                <Icon name="share-2" className="w-4 h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                                <span>Bagikan Tampilan</span>
+                            </button>
+
+                            <button 
+                                onClick={() => window.print()}
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 min-h-[44px] text-sm font-bold rounded-xl bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-500 dark:hover:border-indigo-400/50 hover:bg-indigo-500/[0.04] dark:hover:bg-indigo-400/[0.04] transition-all duration-300 shadow-sm active:scale-95"
+                            >
+                                <Icon name="printer" className="w-4 h-4 text-blue-500 dark:text-blue-400 shrink-0" />
+                                <span>Cetak Laporan</span>
+                            </button>
+
+                            <button 
+                                onClick={() => { try { setIsComparing(!isComparing); } catch(err){} }}
+                                className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 min-h-[44px] text-sm font-bold rounded-xl transition-all duration-300 shadow-sm active:scale-95 sm:ml-auto ${
                                     isComparing 
                                         ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/20 border-transparent' 
                                         : 'bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-500 dark:hover:border-indigo-400/50 hover:bg-indigo-500/[0.04] dark:hover:bg-indigo-400/[0.04]'
                                 }`}
-                                title={isComparing ? "Tutup Perbandingan" : "Bandingkan Kriteria"}
                             >
-                                <Icon name="git-compare" className="w-4 h-4 text-indigo-500 dark:text-indigo-400 group-hover:rotate-18) duration-500" />
-                                <span className="hidden sm:inline">{isComparing ? 'Tutup Perbandingan' : 'Bandingkan Kriteria'}</span>
+                                <Icon name="git-compare" className={`w-4 h-4 shrink-0 ${isComparing ? 'text-white' : 'text-indigo-500 dark:text-indigo-400'} group-hover:rotate-180 duration-500`} />
+                                <span>{isComparing ? 'Tutup Pembanding' : 'Bandingkan Kriteria'}</span>
                             </button>
 
                         </div>
-                    </div>
+                    </header>
 
                     {/* Area Konten Utama Dashboard */}
-                    <div className="flex flex-col lg:flex-row gap-8">
+                    <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 pb-10">
                         {/* Kolom A */}
-                        <div className={`flex-1 flex flex-col transition-all duration-500 ${isComparing ? 'w-full lg:w-1/2' : 'w-full'}`}>
-                            <FilterGroup 
-                                data={rawData} 
-                                filters={filtersA} 
-                                setFilters={setFiltersA} 
-                                title={isComparing ? "Kriteria A" : "Filter Data TPP"} 
-                            />
-                            <DashboardView 
-                                title={isComparing ? "Hasil Kriteria A" : null} 
-                                kpis={kpisA}
-                                isComparing={false} 
-                            />
+                        <div className={`flex-1 flex flex-col transition-all duration-500 ${isComparing ? 'w-full lg:w-1/2 print-full-width' : 'w-full'}`}>
+                            <div className="no-print">
+                                <FilterGroup 
+                                    data={rawData} filters={filtersA} setFilters={setFiltersA} 
+                                    title={isComparing ? "Kriteria A" : "Filter Data TPP"} 
+                                    activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown} prefixId="fA"
+                                />
+                            </div>
+                            <DashboardView title={isComparing ? "Hasil Kriteria A" : "Visualisasi Metrik TPP"} kpis={kpisA} isComparing={false} />
                         </div>
 
                         {/* Kolom B */}
                         {isComparing && (
-                            <div className="flex-1 flex flex-col border-t lg:border-t-0 lg:border-l border-slate-200/80 dark:border-slate-800/80 pt-8 lg:pt-0 lg:pl-8 transition-all duration-500 fade-enter-active">
-                                <FilterGroup 
-                                    data={rawData} 
-                                    filters={filtersB} 
-                                    setFilters={setFiltersB} 
-                                    title="Kriteria B (Pembanding)" 
-                                />
+                            <div className="flex-1 flex flex-col border-t lg:border-t-0 lg:border-l border-slate-200/80 dark:border-slate-800/80 pt-8 lg:pt-0 lg:pl-8 transition-all duration-500 fade-in print-full-width">
+                                <div className="no-print">
+                                    <FilterGroup 
+                                        data={rawData} filters={filtersB} setFilters={setFiltersB} 
+                                        title="Kriteria B (Pembanding)" 
+                                        activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown} prefixId="fB"
+                                    />
+                                </div>
                                 <DashboardView 
-                                    title="Hasil Kriteria B vs A" 
-                                    kpis={kpisB}
-                                    comparisonTargetKPIs={kpisA}
-                                    isComparing={true}
-                                    filtersA={filtersA}
-                                    filtersB={filtersB}
+                                    title="Hasil Kriteria B vs A" kpis={kpisB} comparisonTargetKPIs={kpisA}
+                                    isComparing={true} filtersA={filtersA} filtersB={filtersB}
                                 />
                             </div>
                         )}
