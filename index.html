@@ -207,54 +207,72 @@
             }
         };
 
-        // --- 0b. KOMPONEN ANIMASI ANGKA BARU (Mulus, Cepat, dan Jelas) ---
+        // --- 0b. KOMPONEN ANIMASI ANGKA (Mulus, Cepat, dan Jelas) ---
         const AnimatedNumber = ({ value, isDecimal = false, maxDecimals = 2 }) => {
-            const [displayValue, setDisplayValue] = useState(value || 0);
-            const prevValueRef = useRef(value || 0);
+            const safeValue = (v) => (v === undefined || v === null || isNaN(v)) ? 0 : Number(v);
+            const [displayValue, setDisplayValue] = useState(safeValue(value));
+            const prevValueRef = useRef(safeValue(value));
+            // Simpan animationId aktif via ref agar frame rekursif bisa di-cancel sepenuhnya
+            const rafIdRef = useRef(null);
 
             useEffect(() => {
-                const targetValue = value || 0;
+                const targetValue = safeValue(value);
                 const startValue = prevValueRef.current;
-                
+
+                // Batalkan animasi sebelumnya yang mungkin masih berjalan
+                if (rafIdRef.current !== null) {
+                    try { window.cancelAnimationFrame(rafIdRef.current); } catch(e) {}
+                    rafIdRef.current = null;
+                }
+
                 if (startValue === targetValue) {
                     setDisplayValue(targetValue);
                     return;
                 }
 
-                let startTimestamp = null;
-                const duration = 600; // 600ms sangat responsif, cepat di awal, jelas di akhir
+                // Perbarui prevValue segera agar re-render berikutnya
+                // tidak mengulang dari nilai lama yang sudah kadaluarsa
+                prevValueRef.current = targetValue;
 
-                // Easing function: easeOutQuart 
-                // Kurva yang memelesatkan angka seketika namun merem halus bagaikan magnet
+                let startTimestamp = null;
+                const duration = 600; // ms
+
+                // Easing: easeOutQuart — cepat di awal, lembut di akhir
                 const easeOutQuart = (x) => {
                     try { return 1 - Math.pow(1 - x, 4); } catch(e) { return x; }
                 };
 
                 const step = (timestamp) => {
                     try {
-                        if (!startTimestamp) startTimestamp = timestamp;
-                        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                        if (startTimestamp === null) startTimestamp = timestamp;
+                        const elapsed = timestamp - startTimestamp;
+                        const progress = Math.min(elapsed / duration, 1);
                         const easeProgress = easeOutQuart(progress);
-                        
+
                         const currentVal = startValue + (targetValue - startValue) * easeProgress;
                         setDisplayValue(currentVal);
 
                         if (progress < 1) {
-                            window.requestAnimationFrame(step);
+                            // Simpan ID baru ke ref agar cleanup bisa membatalkannya
+                            rafIdRef.current = window.requestAnimationFrame(step);
                         } else {
                             setDisplayValue(targetValue);
-                            prevValueRef.current = targetValue;
+                            rafIdRef.current = null;
                         }
                     } catch(e) {
                         setDisplayValue(targetValue);
-                        prevValueRef.current = targetValue;
+                        rafIdRef.current = null;
                     }
                 };
 
-                const animationId = window.requestAnimationFrame(step);
+                rafIdRef.current = window.requestAnimationFrame(step);
 
                 return () => {
-                    try { window.cancelAnimationFrame(animationId); } catch(e) {}
+                    // Batalkan frame yang masih pending saat value berubah atau komponen unmount
+                    if (rafIdRef.current !== null) {
+                        try { window.cancelAnimationFrame(rafIdRef.current); } catch(e) {}
+                        rafIdRef.current = null;
+                    }
                 };
             }, [value]);
 
@@ -262,7 +280,6 @@
                 if (isDecimal) {
                     return <span>{formatDecimalID(displayValue, maxDecimals)}</span>;
                 }
-                // Math.round menstabilkan frame rendering UI agar lebih presisi di mata
                 return <span>{formatIntegerID(Math.round(displayValue))}</span>;
             } catch (err) {
                 return <span>{isDecimal ? formatDecimalID(value, maxDecimals) : formatIntegerID(value)}</span>;
