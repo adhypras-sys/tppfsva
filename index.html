@@ -37,6 +37,8 @@
 
     <!-- PapaParse untuk membaca Google Sheet sebagai CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Recharts untuk grafik pie -->
+    <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
 
     <style>
         /* Transisi Global Mulus & Proteksi Sentuhan Ganda */
@@ -238,7 +240,7 @@
                 let startTimestamp = null;
                 const duration = 700; // ms
 
-                // Easing: easeOutQuart — cepat di awal, lembut di akhir
+                // Easing: easeOutQuart  -  cepat di awal, lembut di akhir
                 const easeOutQuart = (x) => 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 4);
 
                 const step = (timestamp) => {
@@ -834,9 +836,180 @@
             } catch (err) { return null; }
         };
 
+        // --- 3b. KOMPONEN GRAFIK PIE DISTRIBUSI STATUS ---
+        const { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } = Recharts;
+
+        // Warna untuk setiap slice pie
+        const PIE_COLORS = {
+            'Memenuhi Syarat':      { fill: '#10b981', dark: '#34d399' },
+            'Tidak Memenuhi Syarat':{ fill: '#f43f5e', dark: '#fb7185' },
+            'default_0':            { fill: '#6366f1', dark: '#818cf8' },
+            'default_1':            { fill: '#f59e0b', dark: '#fbbf24' },
+            'default_2':            { fill: '#06b6d4', dark: '#22d3ee' },
+            'default_3':            { fill: '#a855f7', dark: '#c084fc' },
+        };
+
+        const getPieColor = (label, index, isDark) => {
+            const key = Object.keys(PIE_COLORS).find(k =>
+                label && label.toLowerCase().replace(/\s+/g,'') === k.toLowerCase().replace(/\s+/g,'')
+            );
+            if (key) return isDark ? PIE_COLORS[key].dark : PIE_COLORS[key].fill;
+            const fallback = PIE_COLORS[`default_${index % 4}`];
+            return isDark ? fallback.dark : fallback.fill;
+        };
+
+        // Satu kartu pie tunggal
+        const SinglePieCard = ({ title, field, data, isDark, iconName, accentGradient }) => {
+            // Hitung distribusi nilai unik dari field ini
+            const distribution = useMemo(() => {
+                try {
+                    if (!Array.isArray(data) || data.length === 0) return [];
+                    const counts = {};
+                    data.forEach(row => {
+                        const val = row[field];
+                        const key = (val && val.trim() !== '') ? val.trim() : 'Belum Ada Data';
+                        counts[key] = (counts[key] || 0) + 1;
+                    });
+                    return Object.entries(counts)
+                        .map(([name, value]) => ({ name, value }))
+                        .sort((a, b) => b.value - a.value);
+                } catch (e) { return []; }
+            }, [data, field]);
+
+            const total = useMemo(() => distribution.reduce((s, d) => s + d.value, 0), [distribution]);
+
+            // Custom tooltip
+            const CustomTooltip = ({ active, payload }) => {
+                if (!active || !payload || !payload.length) return null;
+                const item = payload[0];
+                const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0';
+                return (
+                    <div className="glass-panel px-3 py-2.5 rounded-xl shadow-xl border border-slate-200/60 dark:border-white/10 text-xs font-semibold"
+                         style={{ background: isDark ? 'rgba(11,18,36,0.95)' : 'rgba(255,255,255,0.97)' }}>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.payload.color }}></span>
+                            <span className="text-slate-700 dark:text-slate-200 leading-snug max-w-[160px]">{item.name}</span>
+                        </div>
+                        <div className="text-slate-500 dark:text-slate-400 pl-4.5">
+                            {formatIntegerID(item.value)} unit &bull; <span className="text-indigo-500 dark:text-indigo-400">{pct}%</span>
+                        </div>
+                    </div>
+                );
+            };
+
+            // Custom legend
+            const renderLegend = (props) => {
+                try {
+                    const { payload } = props;
+                    return (
+                        <ul className="flex flex-col gap-1.5 mt-2 px-1">
+                            {payload.map((entry, i) => {
+                                const pct = total > 0 ? ((entry.payload.value / total) * 100).toFixed(1) : '0';
+                                return (
+                                    <li key={i} className="flex items-center gap-2 text-xs">
+                                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: entry.color }}></span>
+                                        <span className="text-slate-600 dark:text-slate-300 truncate flex-1 leading-snug">{entry.value}</span>
+                                        <span className="text-slate-400 dark:text-slate-500 font-bold shrink-0">{pct}%</span>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    );
+                } catch (e) { return null; }
+            };
+
+            if (distribution.length === 0) {
+                return (
+                    <div className="glass-panel p-5 rounded-3xl flex flex-col h-full min-h-[280px] items-center justify-center text-center opacity-70">
+                        <Icon name="pie-chart" className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-3" />
+                        <p className="text-xs text-slate-400 font-semibold">Tidak ada data</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="glass-panel p-5 sm:p-6 rounded-3xl flex flex-col relative overflow-hidden group hover:-translate-y-1 duration-300 hover:shadow-2xl hover:border-indigo-500/20 dark:hover:border-indigo-400/20 h-full">
+                    <div className={`absolute -right-8 -top-8 w-28 h-28 rounded-full opacity-[0.06] dark:opacity-[0.09] blur-3xl group-hover:opacity-15 duration-500 bg-gradient-to-br ${accentGradient}`}></div>
+
+                    {/* Judul kartu */}
+                    <div className="flex items-center gap-2.5 mb-4">
+                        <div className={`p-2 rounded-xl bg-gradient-to-br ${accentGradient} text-white flex items-center justify-center shadow-lg shrink-0`}>
+                            <Icon name={iconName} className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-snug">{title}</span>
+                    </div>
+
+                    {/* Total kecil */}
+                    <div className="text-xs text-slate-400 dark:text-slate-500 font-semibold mb-3 pl-0.5">
+                        Total: <span className="text-slate-700 dark:text-slate-200 font-bold">{formatIntegerID(total)}</span> unit
+                    </div>
+
+                    {/* Pie Chart */}
+                    <div style={{ width: '100%', height: 180 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={distribution.map((d, i) => ({ ...d, color: getPieColor(d.name, i, isDark) }))}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={48}
+                                    outerRadius={78}
+                                    paddingAngle={3}
+                                    dataKey="value"
+                                    startAngle={90}
+                                    endAngle={-270}
+                                    animationBegin={0}
+                                    animationDuration={700}
+                                    animationEasing="ease-out"
+                                >
+                                    {distribution.map((entry, i) => (
+                                        <Cell key={i} fill={getPieColor(entry.name, i, isDark)} stroke="transparent" />
+                                    ))}
+                                </Pie>
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend content={renderLegend} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            );
+        };
+
+        // Container 4 pie chart
+        const PieChartSection = ({ filteredData, isDark }) => {
+            const charts = [
+                { title: 'Status Inspeksi Kesling',       field: 'statusIKL',       iconName: 'clipboard-check', accentGradient: 'from-emerald-500 to-teal-600'   },
+                { title: 'Status Peningkatan Kapasitas',  field: 'statusKapasitas', iconName: 'trending-up',     accentGradient: 'from-amber-500 to-orange-600'   },
+                { title: 'Status Pemeriksaan Pangan',     field: 'statusPangan',    iconName: 'shield-check',    accentGradient: 'from-purple-500 to-fuchsia-600' },
+                { title: 'TPP Memenuhi Syarat',           field: 'statusTPP',       iconName: 'award',           accentGradient: 'from-rose-500 to-pink-600'      },
+            ];
+
+            return (
+                <div className="flex flex-col gap-5 mt-6">
+                    <h3 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-800 dark:text-white mb-1 pl-1 flex items-center gap-2">
+                        <span className="w-1.5 h-5 sm:h-6 rounded-full bg-indigo-500"></span>
+                        Distribusi Status TPP
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+                        {charts.map((c) => (
+                            <SinglePieCard
+                                key={c.field}
+                                title={c.title}
+                                field={c.field}
+                                data={filteredData}
+                                isDark={isDark}
+                                iconName={c.iconName}
+                                accentGradient={c.accentGradient}
+                            />
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
         // --- 4. KOMPONEN VISUALISASI METRIK ---
         // MetricCard HARUS didefinisikan di luar DashboardView agar React tidak
-        // membuat fungsi komponen baru di setiap render — yang menyebabkan
+        // membuat fungsi komponen baru di setiap render  -  yang menyebabkan
         // unmount/remount AnimatedNumber sehingga animasi tidak pernah berjalan.
         const MetricCard = ({ label, value, percentage, unit, compValue, iconName, themeGradient, isComparing, isTimeCompare }) => {
             let compInfo = null;
@@ -1280,7 +1453,7 @@
                             <h2 className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-white mb-2 tracking-tight">Akses Data Gagal</h2>
                             <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 font-medium leading-relaxed">{error}</p>
                             <div className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm text-left bg-rose-50/50 dark:bg-black/30 p-4 sm:p-5 rounded-2xl border border-rose-100 dark:border-rose-950/40 leading-relaxed shadow-inner">
-                                <b className="text-rose-600 dark:text-rose-400 font-bold block mb-1">💡 Solusi Cepat:</b> Buka tautan Google Sheet Anda, klik tombol "Bagikan" (Share) di pojok kanan atas, lalu pastikan Akses Umum adalah <b>"Siapa saja yang memiliki link"</b>. Kemudian muat ulang halaman.
+                                <b className="text-rose-600 dark:text-rose-400 font-bold block mb-1"> Solusi Cepat:</b> Buka tautan Google Sheet Anda, klik tombol "Bagikan" (Share) di pojok kanan atas, lalu pastikan Akses Umum adalah <b>"Siapa saja yang memiliki link"</b>. Kemudian muat ulang halaman.
                             </div>
                         </div>
                     </div>
@@ -1366,7 +1539,7 @@
                     </header>
 
                     {/* Area Konten Utama Dashboard */}
-                    <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 pb-10">
+                    <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 pb-4">
                         {/* Kolom A */}
                         <div className={`flex-1 flex flex-col transition-all duration-500 ${isComparing ? 'w-full lg:w-1/2 print-full-width' : 'w-full'}`}>
                             <div className="no-print">
@@ -1378,6 +1551,11 @@
                             </div>
                             
                             <DashboardView title={isComparing ? "Hasil Kriteria A" : "Rekapitulasi Data TPP"} kpis={kpisA} isComparing={false} />
+
+                            {/* Grafik Pie Kolom A  -  tampil di dalam kolom saat mode compare */}
+                            {isComparing && filteredDataA.length > 0 && (
+                                <PieChartSection filteredData={filteredDataA} isDark={isDarkMode} />
+                            )}
                             
                             {/* TABEL KOLOM A (Tampil jika kecamatan diisi) */}
                             {filtersA.kecamatan && (
@@ -1401,6 +1579,11 @@
                                     isComparing={true} filtersA={filtersA} filtersB={filtersB}
                                 />
 
+                                {/* Grafik Pie Kolom B */}
+                                {filteredDataB.length > 0 && (
+                                    <PieChartSection filteredData={filteredDataB} isDark={isDarkMode} />
+                                )}
+
                                 {/* TABEL KOLOM B (Tampil jika kecamatan diisi) */}
                                 {filtersB.kecamatan && (
                                     <DataTable data={filteredDataB} title={`Daftar TPP - Kriteria B (${filtersB.kecamatan})`} />
@@ -1408,6 +1591,13 @@
                             </div>
                         )}
                     </div>
+
+                    {/* Grafik Pie Full-Width  -  tampil di bawah saat mode normal (tidak compare) */}
+                    {!isComparing && filteredDataA.length > 0 && (
+                        <div className="pb-10">
+                            <PieChartSection filteredData={filteredDataA} isDark={isDarkMode} />
+                        </div>
+                    )}
                 </div>
             );
         };
