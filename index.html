@@ -207,64 +207,63 @@
             }
         };
 
-        // --- 0b. KOMPONEN ANIMASI ANGKA ---
+        // --- 0b. KOMPONEN ANIMASI ANGKA BARU (Mulus, Cepat, dan Jelas) ---
         const AnimatedNumber = ({ value, isDecimal = false, maxDecimals = 2 }) => {
             const [displayValue, setDisplayValue] = useState(value || 0);
             const prevValueRef = useRef(value || 0);
 
             useEffect(() => {
-                let animationFrameId;
-                try {
-                    const startValue = prevValueRef.current;
-                    const targetValue = value || 0;
-                    
-                    if (startValue === targetValue) {
-                        setDisplayValue(targetValue);
-                        return;
-                    }
+                const targetValue = value || 0;
+                const startValue = prevValueRef.current;
+                
+                if (startValue === targetValue) {
+                    setDisplayValue(targetValue);
+                    return;
+                }
 
-                    const duration = 400; 
-                    const startTime = performance.now();
+                let startTimestamp = null;
+                const duration = 600; // 600ms sangat responsif, cepat di awal, jelas di akhir
 
-                    const easeOutQuad = (t) => {
-                        try { return t * (2 - t); } catch (e) { return t; }
-                    };
+                // Easing function: easeOutQuart 
+                // Kurva yang memelesatkan angka seketika namun merem halus bagaikan magnet
+                const easeOutQuart = (x) => {
+                    try { return 1 - Math.pow(1 - x, 4); } catch(e) { return x; }
+                };
 
-                    const animate = (currentTime) => {
-                        try {
-                            const elapsedTime = currentTime - startTime;
-                            const progress = Math.min(elapsedTime / duration, 1);
-                            const easedProgress = easeOutQuad(progress);
-                            
-                            const currentValue = startValue + (targetValue - startValue) * easedProgress;
-                            setDisplayValue(currentValue);
+                const step = (timestamp) => {
+                    try {
+                        if (!startTimestamp) startTimestamp = timestamp;
+                        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                        const easeProgress = easeOutQuart(progress);
+                        
+                        const currentVal = startValue + (targetValue - startValue) * easeProgress;
+                        setDisplayValue(currentVal);
 
-                            if (progress < 1) {
-                                animationFrameId = requestAnimationFrame(animate);
-                            } else {
-                                setDisplayValue(targetValue);
-                                prevValueRef.current = targetValue;
-                            }
-                        } catch (err) {
+                        if (progress < 1) {
+                            window.requestAnimationFrame(step);
+                        } else {
                             setDisplayValue(targetValue);
                             prevValueRef.current = targetValue;
                         }
-                    };
+                    } catch(e) {
+                        setDisplayValue(targetValue);
+                        prevValueRef.current = targetValue;
+                    }
+                };
 
-                    animationFrameId = requestAnimationFrame(animate);
-                } catch (error) {
-                    setDisplayValue(value || 0);
-                }
+                const animationId = window.requestAnimationFrame(step);
 
                 return () => {
-                    try { if (animationFrameId) cancelAnimationFrame(animationFrameId); } 
-                    catch (e) {}
+                    try { window.cancelAnimationFrame(animationId); } catch(e) {}
                 };
             }, [value]);
 
             try {
-                if (isDecimal) return <span>{formatDecimalID(displayValue, maxDecimals)}</span>;
-                return <span>{formatIntegerID(displayValue)}</span>;
+                if (isDecimal) {
+                    return <span>{formatDecimalID(displayValue, maxDecimals)}</span>;
+                }
+                // Math.round menstabilkan frame rendering UI agar lebih presisi di mata
+                return <span>{formatIntegerID(Math.round(displayValue))}</span>;
             } catch (err) {
                 return <span>{isDecimal ? formatDecimalID(value, maxDecimals) : formatIntegerID(value)}</span>;
             }
@@ -741,7 +740,7 @@
             } catch (error) { return []; }
         };
 
-        const calculateKPIs = (data) => {
+        const calculateKPIs = (data, filters) => {
             try {
                 if (!Array.isArray(data)) throw new Error("Data must be an array");
                 const total = data.length;
@@ -750,6 +749,28 @@
                 const msKapasitas = data.filter(d => d.statusKapasitas && d.statusKapasitas.toLowerCase().includes('memenuhi') && !d.statusKapasitas.toLowerCase().includes('tidak memenuhi')).length;
                 const msPangan = data.filter(d => d.statusPangan && d.statusPangan.toLowerCase().includes('memenuhi') && !d.statusPangan.toLowerCase().includes('tidak memenuhi')).length;
                 const msTPP = data.filter(d => d.statusTPP && d.statusTPP.toLowerCase().includes('memenuhi') && !d.statusTPP.toLowerCase().includes('tidak memenuhi')).length;
+                
+                // Evaluasi validitas SLHS (Kolom T ke Kolom U)
+                const msSLHS = data.filter(d => {
+                    try {
+                        const startMatch = d.tglSLHS ? d.tglSLHS.match(/\b(20\d{2})\b/) : null;
+                        const endMatch = d.slhsKadaluarsa ? d.slhsKadaluarsa.match(/\b(20\d{2})\b/) : null;
+                        
+                        if (!startMatch || !endMatch) return false;
+                        
+                        const startYear = parseInt(startMatch[1], 10);
+                        const endYear = parseInt(endMatch[1], 10);
+                        
+                        // Cek rentang tahun SLHS terhadap filter tahun yang dipilih, atau tahun baris data
+                        const yearsToCheck = (filters && filters.tahun && filters.tahun.length > 0) 
+                            ? filters.tahun.map(y => parseInt(y, 10)) 
+                            : [parseInt(d.tahun, 10)]; 
+                        
+                        return yearsToCheck.some(y => !isNaN(y) && y >= startYear && y <= endYear);
+                    } catch (e) {
+                        return false;
+                    }
+                }).length;
                 
                 return {
                     total,
@@ -761,9 +782,11 @@
                     pctPangan: total > 0 ? (msPangan / total) * 100 : 0,
                     valTPP: msTPP,
                     pctTPP: total > 0 ? (msTPP / total) * 100 : 0,
+                    valSLHS: msSLHS,
+                    pctSLHS: total > 0 ? (msSLHS / total) * 100 : 0,
                 };
             } catch (error) {
-                return { total: 0, valIKL: 0, pctIKL: 0, valKapasitas: 0, pctKapasitas: 0, valPangan: 0, pctPangan: 0, valTPP: 0, pctTPP: 0 };
+                return { total: 0, valIKL: 0, pctIKL: 0, valKapasitas: 0, pctKapasitas: 0, valPangan: 0, pctPangan: 0, valTPP: 0, pctTPP: 0, valSLHS: 0, pctSLHS: 0 };
             }
         };
 
@@ -871,6 +894,7 @@
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                             <MetricCard label="Total TPP" iconName="database" value={kpis?.total} unit="Unit" compValue={comparisonTargetKPIs?.total} themeGradient="from-indigo-500 to-blue-600" />
+                            <MetricCard label="TPP Memiliki SLHS" iconName="badge-check" value={kpis?.valSLHS} percentage={kpis?.pctSLHS} unit="Unit" compValue={comparisonTargetKPIs?.pctSLHS} themeGradient="from-cyan-500 to-blue-600" />
                             <MetricCard label="Memenuhi Syarat Inspeksi Kesling" iconName="check-circle" value={kpis?.valIKL} percentage={kpis?.pctIKL} unit="Unit" compValue={comparisonTargetKPIs?.pctIKL} themeGradient="from-emerald-500 to-teal-600" />
                             <MetricCard label="Memenuhi Syarat Peningkatan Kapasitas" iconName="bar-chart-2" value={kpis?.valKapasitas} percentage={kpis?.pctKapasitas} unit="Unit" compValue={comparisonTargetKPIs?.pctKapasitas} themeGradient="from-amber-500 to-orange-600" />
                             <MetricCard label="Memenuhi Syarat Pemeriksaan Pangan" iconName="shield" value={kpis?.valPangan} percentage={kpis?.pctPangan} unit="Unit" compValue={comparisonTargetKPIs?.pctPangan} themeGradient="from-purple-500 to-fuchsia-600" />
@@ -1118,6 +1142,8 @@
                                         puskesmas: 7,       // Kolom H
                                         jenisTPP: 8,        // Kolom I
                                         namaTPP: 9,         // Kolom J
+                                        tglSLHS: 19,        // Kolom T
+                                        slhsKadaluarsa: 20, // Kolom U
                                         statusIKL: 21,      // Kolom V
                                         statusKapasitas: 22,// Kolom W
                                         statusPangan: 23,   // Kolom X
@@ -1145,6 +1171,8 @@
                                             puskesmas: toTitleCase(safeGet(indices.puskesmas)),
                                             jenisTPP: safeGet(indices.jenisTPP), 
                                             namaTPP: safeGet(indices.namaTPP),
+                                            tglSLHS: safeGet(indices.tglSLHS),
+                                            slhsKadaluarsa: safeGet(indices.slhsKadaluarsa),
                                             statusIKL: safeGet(indices.statusIKL),
                                             statusKapasitas: safeGet(indices.statusKapasitas), 
                                             statusPangan: safeGet(indices.statusPangan),
@@ -1203,8 +1231,8 @@
             const filteredDataA = useMemo(() => applyFilters(rawData, filtersA), [rawData, filtersA]);
             const filteredDataB = useMemo(() => applyFilters(rawData, filtersB), [rawData, filtersB]);
 
-            const kpisA = useMemo(() => calculateKPIs(filteredDataA), [filteredDataA]);
-            const kpisB = useMemo(() => calculateKPIs(filteredDataB), [filteredDataB]);
+            const kpisA = useMemo(() => calculateKPIs(filteredDataA, filtersA), [filteredDataA, filtersA]);
+            const kpisB = useMemo(() => calculateKPIs(filteredDataB, filtersB), [filteredDataB, filtersB]);
 
             if (isLoading) {
                 return (
