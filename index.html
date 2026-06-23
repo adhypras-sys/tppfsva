@@ -29,14 +29,17 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel untuk JSX -->
-    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+    <!-- HTM (Hyperscript Tagged Markup) untuk menulis React tanpa Babel -->
+    <script src="https://unpkg.com/htm@3.1.1/dist/htm.js"></script>
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <!-- PapaParse untuk membaca Google Sheet sebagai CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <!-- Chart.js untuk visualisasi grafik Pie/Doughnut -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         /* Transisi Global Mulus & Proteksi Sentuhan Ganda */
@@ -151,7 +154,10 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel">
+    <!-- Skrip JavaScript Standar (Bukan text/babel) -->
+    <script type="text/javascript">
+        // Inisialisasi HTM yang diikat ke React.createElement
+        const html = htm.bind(React.createElement);
         const { useState, useEffect, useMemo, useRef } = React;
 
         // --- 0. FUNGSI UTILITAS FORMAT TEKS & ANGKA ---
@@ -211,23 +217,17 @@
         const AnimatedNumber = ({ value, isDecimal = false, maxDecimals = 2 }) => {
             const safeValue = (v) => (v === undefined || v === null || isNaN(Number(v))) ? 0 : Number(v);
             const [displayValue, setDisplayValue] = useState(safeValue(value));
-            // prevValueRef menyimpan nilai tampilan terakhir yang sudah di-render,
-            // sehingga animasi berikutnya selalu mulai dari posisi terakhir yang terlihat user.
             const displayValueRef = useRef(safeValue(value));
-            // Simpan animationId aktif via ref agar frame rekursif bisa di-cancel sepenuhnya
             const rafIdRef = useRef(null);
 
             useEffect(() => {
                 const targetValue = safeValue(value);
 
-                // Batalkan animasi sebelumnya yang mungkin masih berjalan,
-                // dan ambil posisi terakhir sebagai titik awal animasi baru.
                 if (rafIdRef.current !== null) {
                     try { window.cancelAnimationFrame(rafIdRef.current); } catch(e) {}
                     rafIdRef.current = null;
                 }
 
-                // startValue = posisi terakhir yang tampil di layar (bukan target lama)
                 const startValue = displayValueRef.current;
 
                 if (startValue === targetValue) {
@@ -238,7 +238,6 @@
                 let startTimestamp = null;
                 const duration = 700; // ms
 
-                // Easing: easeOutQuart — cepat di awal, lembut di akhir
                 const easeOutQuart = (x) => 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 4);
 
                 const step = (timestamp) => {
@@ -248,7 +247,6 @@
                         const progress = Math.min(elapsed / duration, 1);
                         const currentVal = startValue + (targetValue - startValue) * easeOutQuart(progress);
 
-                        // Selalu catat posisi terkini agar interrupt menghasilkan start yang tepat
                         displayValueRef.current = currentVal;
                         setDisplayValue(currentVal);
 
@@ -269,8 +267,6 @@
                 rafIdRef.current = window.requestAnimationFrame(step);
 
                 return () => {
-                    // Saat value berubah atau unmount: batalkan frame pending.
-                    // displayValueRef sudah mencatat posisi terakhir di dalam step().
                     if (rafIdRef.current !== null) {
                         try { window.cancelAnimationFrame(rafIdRef.current); } catch(e) {}
                         rafIdRef.current = null;
@@ -280,11 +276,11 @@
 
             try {
                 if (isDecimal) {
-                    return <span>{formatDecimalID(displayValue, maxDecimals)}</span>;
+                    return html`<span>${formatDecimalID(displayValue, maxDecimals)}</span>`;
                 }
-                return <span>{formatIntegerID(Math.round(displayValue))}</span>;
+                return html`<span>${formatIntegerID(Math.round(displayValue))}</span>`;
             } catch (err) {
-                return <span>{isDecimal ? formatDecimalID(value, maxDecimals) : formatIntegerID(value)}</span>;
+                return html`<span>${isDecimal ? formatDecimalID(value, maxDecimals) : formatIntegerID(value)}</span>`;
             }
         };
 
@@ -303,38 +299,38 @@
                     }
                 } catch (err) { console.error(err); }
             }, [name, className]);
-            return <span ref={containerRef} style={{ display: 'contents' }}></span>;
+            return html`<span ref=${containerRef} style=${{ display: 'contents' }}></span>`;
         };
 
         // Komponen Status Badge untuk Tabel
         const StatusBadge = ({ text }) => {
             try {
                 if (!text || text === '-' || text.toLowerCase() === 'n/a') {
-                    return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">Belum Ada Data</span>;
+                    return html`<span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">Belum Ada Data</span>`;
                 }
                 const lower = text.toLowerCase();
                 if (lower.includes('tidak memenuhi')) {
-                    return (
+                    return html`
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 whitespace-nowrap">
                             <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
-                            {text}
+                            ${text}
                         </span>
-                    );
+                    `;
                 } else if (lower.includes('memenuhi')) {
-                    return (
+                    return html`
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 whitespace-nowrap">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                            {text}
+                            ${text}
                         </span>
-                    );
+                    `;
                 }
-                return (
+                return html`
                     <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
-                        {text}
+                        ${text}
                     </span>
-                );
+                `;
             } catch(e) { 
-                return <span>{text}</span>; 
+                return html`<span>${text}</span>`; 
             }
         };
 
@@ -384,19 +380,19 @@
                 } catch (e) { return options; }
             }, [options, searchQuery]);
 
-            return (
-                <div className={`relative w-full ${isThisOpen ? 'z-30' : 'z-10'}`} ref={dropdownRef}>
+            return html`
+                <div className=${`relative w-full ${isThisOpen ? 'z-30' : 'z-10'}`} ref=${dropdownRef}>
                     <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 mb-1.5 pl-1">
-                        {iconName && <Icon name={iconName} className="w-3.5 h-3.5 mr-1.5 text-indigo-500/70 dark:text-indigo-400/70" />}
-                        {label}
+                        ${iconName && html`<${Icon} name=${iconName} className="w-3.5 h-3.5 mr-1.5 text-indigo-500/70 dark:text-indigo-400/70" />`}
+                        ${label}
                     </label>
                     <div 
-                        className={`glass-panel w-full rounded-xl px-3 py-2.5 flex justify-between items-center cursor-pointer min-h-[44px] transition-all duration-300 ${
+                        className=${`glass-panel w-full rounded-xl px-3 py-2.5 flex justify-between items-center cursor-pointer min-h-[44px] transition-all duration-300 ${
                             isThisOpen 
                                 ? 'border-indigo-500 ring-2 ring-indigo-500/10 dark:ring-indigo-400/20 bg-white/95 dark:bg-slate-900/95' 
                                 : 'hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-900/40'
                         }`}
-                        onClick={() => {
+                        onClick=${() => {
                             try {
                                 if (isThisOpen) setActiveDropdown(null);
                                 else setActiveDropdown(dropdownId);
@@ -404,51 +400,51 @@
                         }}
                     >
                         <div className="flex-1 overflow-hidden whitespace-nowrap text-ellipsis text-sm font-medium text-slate-700 dark:text-slate-200 pr-2">
-                            {selectedValues.length === 0 ? <span className="text-slate-400/80 dark:text-slate-500/80">Pilih {label}...</span> : selectedValues.join(', ')}
+                            ${selectedValues.length === 0 ? html`<span className="text-slate-400/80 dark:text-slate-500/80">Pilih ${label}...</span>` : selectedValues.join(', ')}
                         </div>
-                        <Icon name={isThisOpen ? "chevron-up" : "chevron-down"} className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+                        <${Icon} name=${isThisOpen ? "chevron-up" : "chevron-down"} className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
                     </div>
 
-                    {isThisOpen && (
+                    ${isThisOpen && html`
                         <div className="absolute left-0 right-0 mt-2 glass-panel rounded-xl shadow-2xl flex flex-col dropdown-menu border-indigo-500/20 bg-white/95 dark:bg-slate-900/95 overflow-hidden">
                             <div className="p-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 bg-white/50 dark:bg-slate-900/50">
-                                <Icon name="search" className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
+                                <${Icon} name="search" className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
                                 <input 
                                     type="text" 
                                     className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-800 dark:text-slate-150 text-sm py-1.5 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-indigo-500/50" 
-                                    placeholder={`Cari ${label}...`}
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                    onTouchStart={(e) => e.stopPropagation()} 
+                                    placeholder=${`Cari ${label}...`}
+                                    value=${searchQuery}
+                                    onChange=${(e) => setSearchQuery(e.target.value)}
+                                    onClick=${(e) => e.stopPropagation()}
+                                    onTouchStart=${(e) => e.stopPropagation()} 
                                 />
                             </div>
                             <div className="overflow-y-auto touch-scroll flex-1 p-1 max-h-[40vh] sm:max-h-60">
-                                {filteredOptions.map((option) => (
+                                ${filteredOptions.map((option) => html`
                                     <div 
-                                        key={option} 
+                                        key=${option} 
                                         className="flex items-center p-2.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer text-slate-700 dark:text-slate-200 transition-colors duration-150 active:bg-indigo-100 dark:active:bg-indigo-900/60"
-                                        onClick={(e) => toggleOption(option, e)}
+                                        onClick=${(e) => toggleOption(option, e)}
                                     >
                                         <div className="relative flex items-center justify-center w-5 h-5 mr-3 shrink-0">
                                             <input 
                                                 type="checkbox" 
                                                 className="w-full h-full rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 focus:ring-opacity-50 pointer-events-none"
-                                                checked={selectedValues.includes(option)}
-                                                readOnly
+                                                checked=${selectedValues.includes(option)}
+                                                readOnly=${true}
                                             />
                                         </div>
-                                        <span className="text-sm font-medium">{option}</span>
+                                        <span className="text-sm font-medium">${option}</span>
                                     </div>
-                                ))}
-                                {filteredOptions.length === 0 && (
+                                `)}
+                                ${filteredOptions.length === 0 && html`
                                     <div className="p-4 text-center text-sm text-slate-400">Tidak ada hasil cocok</div>
-                                )}
+                                `}
                             </div>
                         </div>
-                    )}
+                    `}
                 </div>
-            );
+            `;
         };
 
         // Select komponen
@@ -493,19 +489,19 @@
                 } catch (err) {}
             };
 
-            return (
-                <div className={`relative w-full ${isThisOpen ? 'z-30' : 'z-10'}`} ref={dropdownRef}>
+            return html`
+                <div className=${`relative w-full ${isThisOpen ? 'z-30' : 'z-10'}`} ref=${dropdownRef}>
                     <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 mb-1.5 pl-1">
-                        {iconName && <Icon name={iconName} className="w-3.5 h-3.5 mr-1.5 text-indigo-500/70 dark:text-indigo-400/70" />}
-                        {label}
+                        ${iconName && html`<${Icon} name=${iconName} className="w-3.5 h-3.5 mr-1.5 text-indigo-500/70 dark:text-indigo-400/70" />`}
+                        ${label}
                     </label>
                     <div 
-                        className={`glass-panel w-full rounded-xl px-3 py-2.5 flex justify-between items-center min-h-[44px] transition-all duration-300 ${
+                        className=${`glass-panel w-full rounded-xl px-3 py-2.5 flex justify-between items-center min-h-[44px] transition-all duration-300 ${
                             disabled 
                                 ? 'opacity-50 cursor-not-allowed bg-slate-100/50 dark:bg-slate-900/20' 
                                 : 'cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-900/40'
                         } ${isThisOpen ? 'border-indigo-500 ring-2 ring-indigo-500/10 dark:ring-indigo-400/20 bg-white/95 dark:bg-slate-900/95' : ''}`}
-                        onClick={() => {
+                        onClick=${() => {
                             try {
                                 if (disabled) return;
                                 if (isThisOpen) setActiveDropdown(null);
@@ -514,51 +510,51 @@
                         }}
                     >
                         <div className="flex-1 overflow-hidden whitespace-nowrap text-ellipsis text-sm font-medium text-slate-700 dark:text-slate-200 pr-2">
-                            {value ? value : <span className="text-slate-400/80 dark:text-slate-500/80">Semua {label}</span>}
+                            ${value ? value : html`<span className="text-slate-400/80 dark:text-slate-500/80">Semua ${label}</span>`}
                         </div>
-                        <Icon name={isThisOpen ? "chevron-up" : "chevron-down"} className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+                        <${Icon} name=${isThisOpen ? "chevron-up" : "chevron-down"} className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
                     </div>
 
-                    {isThisOpen && !disabled && (
+                    ${isThisOpen && !disabled && html`
                         <div className="absolute left-0 right-0 mt-2 glass-panel rounded-xl shadow-2xl flex flex-col dropdown-menu border-indigo-500/20 bg-white/95 dark:bg-slate-900/95 overflow-hidden">
                             <div className="p-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 bg-white/50 dark:bg-slate-900/50">
-                                <Icon name="search" className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
+                                <${Icon} name="search" className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
                                 <input 
                                     type="text" 
                                     className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-800 dark:text-slate-150 text-sm py-1.5 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-indigo-500/50" 
-                                    placeholder={`Cari ${label}...`}
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                    onTouchStart={(e) => e.stopPropagation()}
+                                    placeholder=${`Cari ${label}...`}
+                                    value=${searchQuery}
+                                    onChange=${(e) => setSearchQuery(e.target.value)}
+                                    onClick=${(e) => e.stopPropagation()}
+                                    onTouchStart=${(e) => e.stopPropagation()}
                                 />
                             </div>
                             <div className="overflow-y-auto touch-scroll flex-1 p-1 max-h-[40vh] sm:max-h-60">
                                 <div 
                                     className="p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-slate-500 dark:text-slate-400 text-sm font-semibold transition-colors"
-                                    onClick={() => selectOption("")}
+                                    onClick=${() => selectOption("")}
                                 >
-                                    Semua {label}
+                                    Semua ${label}
                                 </div>
-                                {filteredOptions.map((option) => (
+                                ${filteredOptions.map((option) => html`
                                     <div 
-                                        key={option} 
-                                        className={`p-2.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer text-sm font-medium transition-colors ${
+                                        key=${option} 
+                                        className=${`p-2.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer text-sm font-medium transition-colors ${
                                             value === option ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20' : 'text-slate-700 dark:text-slate-200'
                                         }`}
-                                        onClick={() => selectOption(option)}
+                                        onClick=${() => selectOption(option)}
                                     >
-                                        {option}
+                                        ${option}
                                     </div>
-                                ))}
-                                {filteredOptions.length === 0 && (
+                                `)}
+                                ${filteredOptions.length === 0 && html`
                                     <div className="p-4 text-center text-sm text-slate-400">Tidak ada hasil cocok</div>
-                                )}
+                                `}
                             </div>
                         </div>
-                    )}
+                    `}
                 </div>
-            );
+            `;
         };
 
         // --- 2. KOMPONEN FILTER UTAMA ---
@@ -636,93 +632,88 @@
                 } catch (e) { return 0; }
             }, [filters]);
 
-            return (
+            return html`
                 <div className="glass-panel p-4 sm:p-6 rounded-3xl mb-6 relative border-slate-200/80 dark:border-white/10 shadow-xl shadow-slate-100/50 dark:shadow-black/20 hover:border-indigo-500/20 dark:hover:border-indigo-400/20 transition-all duration-300">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-3">
                         <h2 className="text-lg sm:text-xl font-bold text-indigo-600 dark:text-indigo-400 flex items-center">
                             <span className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 mr-3 flex items-center justify-center">
-                                <Icon name="filter" className="w-5 h-5" />
+                                <${Icon} name="filter" className="w-5 h-5" />
                             </span> 
-                            {title}
+                            ${title}
                         </h2>
-                        {activeFiltersCount > 0 && (
+                        ${activeFiltersCount > 0 && html`
                             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                                {activeFiltersCount} Filter Aktif
+                                ${activeFiltersCount} Filter Aktif
                             </span>
-                        )}
+                        `}
                     </div>
                     
-                    {/* Urutan Grid 3x3 */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-                        
-                        {/* Baris 1: Provinsi, Kabupaten/Kota, Kecamatan */}
-                        <Select 
+                        <${Select} 
                             label="Provinsi" iconName="map"
-                            options={provs} value={filters.provinsi || ""} 
-                            onChange={(val) => { try { setFilters({...filters, provinsi: val, kabupaten: '', kecamatan: '', puskesmas: ''}) } catch(e){} }} 
-                            dropdownId={`${prefixId}-provinsi`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
+                            options=${provs} value=${filters.provinsi || ""} 
+                            onChange=${(val) => { try { setFilters({...filters, provinsi: val, kabupaten: '', kecamatan: '', puskesmas: ''}) } catch(e){} }} 
+                            dropdownId=${`${prefixId}-provinsi`} activeDropdown=${activeDropdown} setActiveDropdown=${setActiveDropdown}
                         />
-                        <Select 
+                        <${Select} 
                             label="Kabupaten/Kota" iconName="map-pin"
-                            options={kabs} value={filters.kabupaten || ""} 
-                            onChange={(val) => { try { setFilters({...filters, kabupaten: val, kecamatan: '', puskesmas: ''}) } catch(e){} }} 
-                            disabled={!filters.provinsi}
-                            dropdownId={`${prefixId}-kabupaten`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
+                            options=${kabs} value=${filters.kabupaten || ""} 
+                            onChange=${(val) => { try { setFilters({...filters, kabupaten: val, kecamatan: '', puskesmas: ''}) } catch(e){} }} 
+                            disabled=${!filters.provinsi}
+                            dropdownId=${`${prefixId}-kabupaten`} activeDropdown=${activeDropdown} setActiveDropdown=${setActiveDropdown}
                         />
-                        <Select 
+                        <${Select} 
                             label="Kecamatan" iconName="compass"
-                            options={kecs} value={filters.kecamatan || ""} 
-                            onChange={(val) => { try { setFilters({...filters, kecamatan: val, puskesmas: ''}) } catch(e){} }} 
-                            disabled={!filters.kabupaten}
-                            dropdownId={`${prefixId}-kecamatan`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
+                            options=${kecs} value=${filters.kecamatan || ""} 
+                            onChange=${(val) => { try { setFilters({...filters, kecamatan: val, puskesmas: ''}) } catch(e){} }} 
+                            disabled=${!filters.kabupaten}
+                            dropdownId=${`${prefixId}-kecamatan`} activeDropdown=${activeDropdown} setActiveDropdown=${setActiveDropdown}
                         />
 
-                        {/* Baris 2: Puskesmas, Jenis TPP, Tahun Input TPP */}
-                        <Select 
+                        <${Select} 
                             label="Puskesmas" iconName="building"
-                            options={pusks} value={filters.puskesmas || ""} 
-                            onChange={(val) => { try { setFilters({...filters, puskesmas: val}) } catch(e){} }} 
-                            disabled={!filters.kecamatan}
-                            dropdownId={`${prefixId}-puskesmas`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
+                            options=${pusks} value=${filters.puskesmas || ""} 
+                            onChange=${(val) => { try { setFilters({...filters, puskesmas: val}) } catch(e){} }} 
+                            disabled=${!filters.kecamatan}
+                            dropdownId=${`${prefixId}-puskesmas`} activeDropdown=${activeDropdown} setActiveDropdown=${setActiveDropdown}
                         />
-                        <Select 
+                        <${Select} 
                             label="Jenis TPP" iconName="utensils"
-                            options={jenisTPPs} value={filters.jenisTPP || ""} 
-                            onChange={(val) => { try { setFilters({...filters, jenisTPP: val}) } catch(e){} }} 
-                            dropdownId={`${prefixId}-jenisTPP`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
+                            options=${jenisTPPs} value=${filters.jenisTPP || ""} 
+                            onChange=${(val) => { try { setFilters({...filters, jenisTPP: val}) } catch(e){} }} 
+                            dropdownId=${`${prefixId}-jenisTPP`} activeDropdown=${activeDropdown} setActiveDropdown=${setActiveDropdown}
                         />
-                        <MultiSelect 
+                        <${MultiSelect} 
                             label="Tahun Input TPP" iconName="calendar"
-                            options={years} selectedValues={filters.tahun || []} 
-                            onChange={(val) => { try { setFilters({...filters, tahun: val}) } catch(e){} }} 
-                            dropdownId={`${prefixId}-tahun`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
+                            options=${years} selectedValues=${filters.tahun || []} 
+                            onChange=${(val) => { try { setFilters({...filters, tahun: val}) } catch(e){} }} 
+                            dropdownId=${`${prefixId}-tahun`} activeDropdown=${activeDropdown} setActiveDropdown=${setActiveDropdown}
                         />
 
-                        {/* Baris 3: Status Inspeksi Kesling, Status Peningkatan Kapasitas, Status Pemeriksaan Pangan */}
-                        <MultiSelect 
+                        <${MultiSelect} 
                             label="Status Inspeksi Kesling" iconName="clipboard-check"
-                            options={statusIKLOptions} selectedValues={filters.statusIKL || []} 
-                            onChange={(val) => { try { setFilters({...filters, statusIKL: val}) } catch(e){} }} 
-                            dropdownId={`${prefixId}-statusIKL`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
+                            options=${statusIKLOptions} selectedValues=${filters.statusIKL || []} 
+                            onChange=${(val) => { try { setFilters({...filters, statusIKL: val}) } catch(e){} }} 
+                            dropdownId=${`${prefixId}-statusIKL`} activeDropdown=${activeDropdown} setActiveDropdown=${setActiveDropdown}
                         />
-                        <MultiSelect 
+                        <${MultiSelect} 
                             label="Status Peningkatan Kapasitas" iconName="trending-up"
-                            options={statusKapOptions} selectedValues={filters.statusKapasitas || []} 
-                            onChange={(val) => { try { setFilters({...filters, statusKapasitas: val}) } catch(e){} }} 
-                            dropdownId={`${prefixId}-statusKapasitas`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
+                            options=${statusKapOptions} selectedValues=${filters.statusKapasitas || []} 
+                            onChange=${(val) => { try { setFilters({...filters, statusKapasitas: val}) } catch(e){} }} 
+                            dropdownId=${`${prefixId}-statusKapasitas`} activeDropdown=${activeDropdown} setActiveDropdown=${setActiveDropdown}
                         />
-                        <MultiSelect 
+                        <${MultiSelect} 
                             label="Status Pemeriksaan Pangan" iconName="shield-check"
-                            options={statusPanganOptions} selectedValues={filters.statusPangan || []} 
-                            onChange={(val) => { try { setFilters({...filters, statusPangan: val}) } catch(e){} }} 
-                            dropdownId={`${prefixId}-statusPangan`} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}
+                            options=${statusPanganOptions} selectedValues=${filters.statusPangan || []} 
+                            onChange=${(val) => { try { setFilters({...filters, statusPangan: val}) } catch(e){} }} 
+                            dropdownId=${`${prefixId}-statusPangan`} activeDropdown=${activeDropdown} setActiveDropdown=${setActiveDropdown}
                         />
                     </div>
                     
                     <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800/60 flex justify-end">
                         <button 
-                            onClick={() => {
+                            onClick=${() => {
                                 try {
                                     setFilters({
                                         tahun: [], provinsi: '', kabupaten: '', kecamatan: '', puskesmas: '', 
@@ -732,12 +723,12 @@
                             }}
                             className="px-4 py-2.5 min-h-[44px] text-xs font-bold rounded-xl text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 active:bg-indigo-100 dark:active:bg-indigo-900 transition-all duration-300 flex items-center shadow-sm active:scale-95"
                         >
-                            <Icon name="rotate-ccw" className="w-4 h-4 mr-2" />
+                            <${Icon} name="rotate-ccw" className="w-4 h-4 mr-2" />
                             Reset Kriteria
                         </button>
                     </div>
                 </div>
-            );
+            `;
         };
 
         // --- 3. FUNGSI UTILITAS PENGOLAHAN DATA ---
@@ -769,7 +760,6 @@
                 const msPangan = data.filter(d => d.statusPangan && d.statusPangan.toLowerCase().includes('memenuhi') && !d.statusPangan.toLowerCase().includes('tidak memenuhi')).length;
                 const msTPP = data.filter(d => d.statusTPP && d.statusTPP.toLowerCase().includes('memenuhi') && !d.statusTPP.toLowerCase().includes('tidak memenuhi')).length;
                 
-                // Evaluasi validitas SLHS (Kolom T ke Kolom U)
                 const msSLHS = data.filter(d => {
                     try {
                         const startMatch = d.tglSLHS ? d.tglSLHS.match(/\b(20\d{2})\b/) : null;
@@ -780,7 +770,6 @@
                         const startYear = parseInt(startMatch[1], 10);
                         const endYear = parseInt(endMatch[1], 10);
                         
-                        // Cek rentang tahun SLHS terhadap filter tahun yang dipilih, atau tahun baris data
                         const yearsToCheck = (filters && filters.tahun && filters.tahun.length > 0) 
                             ? filters.tahun.map(y => parseInt(y, 10)) 
                             : [parseInt(d.tahun, 10)]; 
@@ -809,6 +798,55 @@
             }
         };
 
+        // Fungsi baru untuk menyusun data Chart
+        const calculateChartData = (data) => {
+            try {
+                const result = { ikl: {}, kapasitas: {}, pangan: {}, tpp: {} };
+                if (!Array.isArray(data)) return result;
+
+                data.forEach(item => {
+                    const ikl = item.statusIKL && item.statusIKL !== '-' ? item.statusIKL : 'Belum Ada Data';
+                    const kap = item.statusKapasitas && item.statusKapasitas !== '-' ? item.statusKapasitas : 'Belum Ada Data';
+                    const pang = item.statusPangan && item.statusPangan !== '-' ? item.statusPangan : 'Belum Ada Data';
+                    const tpp = item.statusTPP && item.statusTPP !== '-' ? item.statusTPP : 'Belum Ada Data';
+
+                    result.ikl[ikl] = (result.ikl[ikl] || 0) + 1;
+                    result.kapasitas[kap] = (result.kapasitas[kap] || 0) + 1;
+                    result.pangan[pang] = (result.pangan[pang] || 0) + 1;
+                    result.tpp[tpp] = (result.tpp[tpp] || 0) + 1;
+                });
+                
+                return result;
+            } catch (error) {
+                console.error("Error in calculateChartData:", error);
+                return { ikl: {}, kapasitas: {}, pangan: {}, tpp: {} };
+            }
+        };
+
+        // Menentukan kombinasi warna cerdas untuk setiap status Chart
+        const getChartColors = (labels) => {
+            try {
+                const colorMap = {
+                    'memenuhi syarat': '#10b981', // emerald-500
+                    'tidak memenuhi syarat': '#f43f5e', // rose-500
+                    'belum ada data': '#94a3b8', // slate-400
+                    '-': '#94a3b8',
+                    'n/a': '#94a3b8'
+                };
+                const defaultColors = ['#6366f1', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899'];
+                
+                return labels.map((label, i) => {
+                    const lowerLabel = String(label).toLowerCase().trim();
+                    if (colorMap[lowerLabel]) return colorMap[lowerLabel];
+                    if (lowerLabel.includes('tidak memenuhi')) return '#f43f5e';
+                    if (lowerLabel.includes('memenuhi')) return '#10b981';
+                    return defaultColors[i % defaultColors.length];
+                });
+            } catch (err) {
+                return labels.map(() => '#6366f1');
+            }
+        };
+
         const getComparisonIndicator = (valA, valB, isTimeCompare) => {
             try {
                 if (valA === undefined || valB === undefined || isNaN(valA) || isNaN(valB)) return null;
@@ -834,10 +872,7 @@
             } catch (err) { return null; }
         };
 
-        // --- 4. KOMPONEN VISUALISASI METRIK ---
-        // MetricCard HARUS didefinisikan di luar DashboardView agar React tidak
-        // membuat fungsi komponen baru di setiap render — yang menyebabkan
-        // unmount/remount AnimatedNumber sehingga animasi tidak pernah berjalan.
+        // --- 4. KOMPONEN VISUALISASI METRIK & GRAFIK ---
         const MetricCard = ({ label, value, percentage, unit, compValue, iconName, themeGradient, isComparing, isTimeCompare }) => {
             let compInfo = null;
             try {
@@ -847,45 +882,149 @@
                 }
             } catch (err) {}
 
-            return (
+            return html`
                 <div className="glass-panel p-5 sm:p-6 rounded-3xl flex flex-col relative overflow-hidden group hover:-translate-y-1.5 duration-300 hover:shadow-2xl dark:hover:shadow-indigo-500/5 hover:border-indigo-500/25 dark:hover:border-indigo-400/25 h-full">
-                    <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-5 dark:opacity-[0.08] blur-2xl group-hover:opacity-15 duration-500 bg-gradient-to-br ${themeGradient}`}></div>
+                    <div className=${`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-5 dark:opacity-[0.08] blur-2xl group-hover:opacity-15 duration-500 bg-gradient-to-br ${themeGradient}`}></div>
                     
                     <div className="flex justify-between items-start mb-4 gap-2">
-                        <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest leading-relaxed flex-1">{label}</span>
-                        {iconName && (
-                            <div className={`p-2 sm:p-2.5 rounded-xl bg-gradient-to-br ${themeGradient} text-white flex items-center justify-center shadow-lg shadow-indigo-500/10 dark:shadow-indigo-500/2 shrink-0`}>
-                                <Icon name={iconName} className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest leading-relaxed flex-1">${label}</span>
+                        ${iconName && html`
+                            <div className=${`p-2 sm:p-2.5 rounded-xl bg-gradient-to-br ${themeGradient} text-white flex items-center justify-center shadow-lg shadow-indigo-500/10 dark:shadow-indigo-500/2 shrink-0`}>
+                                <${Icon} name=${iconName} className="w-4 h-4 sm:w-5 sm:h-5" />
                             </div>
-                        )}
+                        `}
                     </div>
                     
                     <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1 mt-auto">
                         <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-800 dark:text-white group-hover:scale-[1.01] transition-transform duration-300">
-                            <AnimatedNumber value={value} isDecimal={false} />
+                            <${AnimatedNumber} value=${value} isDecimal=${false} />
                         </span>
-                        <span className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-semibold">{unit}</span>
-                        {percentage !== undefined && (
+                        <span className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-semibold">${unit}</span>
+                        ${percentage !== undefined && html`
                             <span className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 ml-1 sm:ml-1.5">
-                                (<AnimatedNumber value={percentage} isDecimal={true} maxDecimals={2} />%)
+                                (<${AnimatedNumber} value=${percentage} isDecimal=${true} maxDecimals=${2} />%)
                             </span>
-                        )}
+                        `}
                     </div>
                     
-                    {compInfo && (
+                    ${compInfo && html`
                         <div className="mt-4 pt-3.5 border-t border-slate-200/50 dark:border-slate-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs font-bold gap-2">
                             <span className="text-slate-400 dark:text-slate-500">Selisih vs Kriteria A</span>
-                            <div className={`px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 w-full sm:w-auto justify-center sm:justify-start ${compInfo.color}`}>
-                                <Icon name={compInfo.icon} className="w-3.5 h-3.5" />
-                                <span>{compInfo.text} {percentage !== undefined ? '%' : unit}</span>
+                            <div className=${`px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 w-full sm:w-auto justify-center sm:justify-start ${compInfo.color}`}>
+                                <${Icon} name=${compInfo.icon} className="w-3.5 h-3.5" />
+                                <span>${compInfo.text} ${percentage !== undefined ? '%' : unit}</span>
                             </div>
                         </div>
-                    )}
+                    `}
                 </div>
-            );
+            `;
         };
 
-        const DashboardView = ({ title, kpis, comparisonTargetKPIs, isComparing, filtersA, filtersB }) => {
+        // Komponen Baru untuk Grafik Pie/Doughnut Chart.js
+        const PieChartCard = ({ title, dataObj, isDarkMode }) => {
+            const canvasRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            useEffect(() => {
+                try {
+                    if (!canvasRef.current) return;
+                    
+                    // Bersihkan chart lama jika ada agar tidak tertumpuk
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+
+                    const labels = Object.keys(dataObj);
+                    const dataPoints = Object.values(dataObj);
+                    const bgColors = getChartColors(labels);
+
+                    const ctx = canvasRef.current.getContext('2d');
+                    
+                    chartInstance.current = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: dataPoints,
+                                backgroundColor: bgColors,
+                                borderWidth: 0,
+                                hoverOffset: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '65%', // membuat tengahnya bolong (doughnut)
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        padding: 15,
+                                        usePointStyle: true,
+                                        font: { family: 'system-ui', size: 11 },
+                                        color: isDarkMode ? '#cbd5e1' : '#475569'
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                                    titleColor: isDarkMode ? '#f8fafc' : '#0f172a',
+                                    bodyColor: isDarkMode ? '#cbd5e1' : '#475569',
+                                    borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                                    borderWidth: 1,
+                                    titleFont: { size: 13, family: 'system-ui' },
+                                    bodyFont: { size: 12, family: 'system-ui', weight: 'bold' },
+                                    padding: 10,
+                                    cornerRadius: 8,
+                                    callbacks: {
+                                        label: function(context) {
+                                            try {
+                                                let label = context.label || '';
+                                                if (label) label += ': ';
+                                                let value = context.parsed;
+                                                let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                                let percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                                return label + value + ' Unit (' + percentage + '%)';
+                                            } catch (e) {
+                                                return context.parsed;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } catch (error) {
+                    console.error("Error drawing chart:", error);
+                }
+
+                // Cleanup ketika komponen dilepas
+                return () => {
+                    try {
+                        if (chartInstance.current) {
+                            chartInstance.current.destroy();
+                        }
+                    } catch (e) {}
+                };
+            }, [dataObj, isDarkMode]); // Render ulang saat dataObj atau mode gelap berubah
+
+            return html`
+                <div className="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-between h-full hover:border-indigo-500/20 hover:-translate-y-1 transition-all duration-300">
+                    <h4 className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 text-center w-full truncate" title=${title}>
+                        ${title}
+                    </h4>
+                    <div className="relative w-full h-[220px] flex items-center justify-center pb-2">
+                        ${Object.keys(dataObj).length === 0 ? html`
+                            <span className="text-xs text-slate-400">Tidak ada data</span>
+                        ` : html`
+                            <canvas ref=${canvasRef}></canvas>
+                        `}
+                    </div>
+                </div>
+            `;
+        };
+
+        // Menambahkan prop chartData dan isDarkMode ke DashboardView
+        const DashboardView = ({ title, kpis, chartData, comparisonTargetKPIs, isComparing, filtersA, filtersB, isDarkMode }) => {
             
             const isTimeCompare = useMemo(() => {
                 try {
@@ -896,35 +1035,48 @@
                 } catch (err) { return false; }
             }, [isComparing, filtersA, filtersB]);
 
-            return (
+            return html`
                 <div className="flex flex-col gap-5 mt-2">
-                    {title && (
-                        <h3 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-800 dark:text-white mb-1 pl-1 flex items-center gap-2">
+                    ${title && html`
+                        <h3 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-800 dark:text-white mb-1 pl-1 flex items-center gap-2 mt-4">
                             <span className="w-1.5 h-5 sm:h-6 rounded-full bg-indigo-500"></span>
-                            {title}
+                            ${title}
                         </h3>
-                    )}
+                    `}
                     
-                    {kpis && kpis.total === 0 ? (
+                    ${kpis && kpis.total === 0 ? html`
                         <div className="glass-panel p-8 rounded-3xl flex flex-col items-center justify-center text-center border-dashed border-2 opacity-80 h-full min-h-[300px]">
                             <div className="p-4 rounded-full bg-slate-100 dark:bg-slate-800 mb-4 text-slate-400">
-                                <Icon name="inbox" className="w-8 h-8" />
+                                <${Icon} name="inbox" className="w-8 h-8" />
                             </div>
                             <h4 className="text-lg font-bold text-slate-600 dark:text-slate-300">Tidak Ada Data</h4>
                             <p className="text-sm text-slate-500 mt-2">Kriteria filter yang dipilih tidak mengembalikan data apa pun.</p>
                         </div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-                            <MetricCard label="Total TPP" iconName="database" value={kpis?.total} unit="Unit" compValue={comparisonTargetKPIs?.total} themeGradient="from-indigo-500 to-blue-600" isComparing={isComparing} isTimeCompare={isTimeCompare} />
-                            <MetricCard label="TPP Memiliki SLHS" iconName="badge-check" value={kpis?.valSLHS} percentage={kpis?.pctSLHS} unit="Unit" compValue={comparisonTargetKPIs?.pctSLHS} themeGradient="from-cyan-500 to-blue-600" isComparing={isComparing} isTimeCompare={isTimeCompare} />
-                            <MetricCard label="Memenuhi Syarat Inspeksi Kesling" iconName="check-circle" value={kpis?.valIKL} percentage={kpis?.pctIKL} unit="Unit" compValue={comparisonTargetKPIs?.pctIKL} themeGradient="from-emerald-500 to-teal-600" isComparing={isComparing} isTimeCompare={isTimeCompare} />
-                            <MetricCard label="Memenuhi Syarat Peningkatan Kapasitas" iconName="bar-chart-2" value={kpis?.valKapasitas} percentage={kpis?.pctKapasitas} unit="Unit" compValue={comparisonTargetKPIs?.pctKapasitas} themeGradient="from-amber-500 to-orange-600" isComparing={isComparing} isTimeCompare={isTimeCompare} />
-                            <MetricCard label="Memenuhi Syarat Pemeriksaan Pangan" iconName="shield" value={kpis?.valPangan} percentage={kpis?.pctPangan} unit="Unit" compValue={comparisonTargetKPIs?.pctPangan} themeGradient="from-purple-500 to-fuchsia-600" isComparing={isComparing} isTimeCompare={isTimeCompare} />
-                            <MetricCard label="TPP Memenuhi Syarat" iconName="award" value={kpis?.valTPP} percentage={kpis?.pctTPP} unit="Unit" compValue={comparisonTargetKPIs?.pctTPP} themeGradient="from-rose-500 to-pink-600" isComparing={isComparing} isTimeCompare={isTimeCompare} />
+                    ` : html`
+                        <div className="flex flex-col gap-6">
+                            <!-- Metrik Angka -->
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                                <${MetricCard} label="Total TPP" iconName="database" value=${kpis?.total} unit="Unit" compValue=${comparisonTargetKPIs?.total} themeGradient="from-indigo-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                <${MetricCard} label="TPP Memiliki SLHS" iconName="badge-check" value=${kpis?.valSLHS} percentage=${kpis?.pctSLHS} unit="Unit" compValue=${comparisonTargetKPIs?.pctSLHS} themeGradient="from-cyan-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                <${MetricCard} label="Memenuhi Syarat Inspeksi Kesling" iconName="check-circle" value=${kpis?.valIKL} percentage=${kpis?.pctIKL} unit="Unit" compValue=${comparisonTargetKPIs?.pctIKL} themeGradient="from-emerald-500 to-teal-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                <${MetricCard} label="Memenuhi Syarat Peningkatan Kapasitas" iconName="bar-chart-2" value=${kpis?.valKapasitas} percentage=${kpis?.pctKapasitas} unit="Unit" compValue=${comparisonTargetKPIs?.pctKapasitas} themeGradient="from-amber-500 to-orange-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                <${MetricCard} label="Memenuhi Syarat Pemeriksaan Pangan" iconName="shield" value=${kpis?.valPangan} percentage=${kpis?.pctPangan} unit="Unit" compValue=${comparisonTargetKPIs?.pctPangan} themeGradient="from-purple-500 to-fuchsia-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                <${MetricCard} label="TPP Memenuhi Syarat" iconName="award" value=${kpis?.valTPP} percentage=${kpis?.pctTPP} unit="Unit" compValue=${comparisonTargetKPIs?.pctTPP} themeGradient="from-rose-500 to-pink-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                            </div>
+
+                            <!-- Area Grafik Visual -->
+                            ${chartData && html`
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mt-2 fade-in">
+                                    <${PieChartCard} title="Inspeksi Kesling" dataObj=${chartData.ikl} isDarkMode=${isDarkMode} />
+                                    <${PieChartCard} title="Peningkatan Kapasitas" dataObj=${chartData.kapasitas} isDarkMode=${isDarkMode} />
+                                    <${PieChartCard} title="Pemeriksaan Pangan" dataObj=${chartData.pangan} isDarkMode=${isDarkMode} />
+                                    <${PieChartCard} title="TPP Memenuhi Syarat Akhir" dataObj=${chartData.tpp} isDarkMode=${isDarkMode} />
+                                </div>
+                            `}
                         </div>
-                    )}
+                    `}
                 </div>
-            );
+            `;
         };
 
         // --- 4.b KOMPONEN TABEL DATA DENGAN SORTING ---
@@ -966,24 +1118,24 @@
             const getSortIcon = (columnKey) => {
                 try {
                     if (sortConfig.key !== columnKey) {
-                        return <Icon name="chevrons-up-down" className="w-3.5 h-3.5 ml-1.5 opacity-40 group-hover:opacity-100 transition-opacity" />;
+                        return html`<${Icon} name="chevrons-up-down" className="w-3.5 h-3.5 ml-1.5 opacity-40 group-hover:opacity-100 transition-opacity" />`;
                     }
                     if (sortConfig.direction === 'asc') {
-                        return <Icon name="chevron-up" className="w-3.5 h-3.5 ml-1.5 text-indigo-500" />;
+                        return html`<${Icon} name="chevron-up" className="w-3.5 h-3.5 ml-1.5 text-indigo-500" />`;
                     }
-                    return <Icon name="chevron-down" className="w-3.5 h-3.5 ml-1.5 text-indigo-500" />;
+                    return html`<${Icon} name="chevron-down" className="w-3.5 h-3.5 ml-1.5 text-indigo-500" />`;
                 } catch (e) {
                     return null;
                 }
             };
 
-            return (
+            return html`
                 <div className="glass-panel p-4 sm:p-6 rounded-3xl mt-6 fade-in flex flex-col border-slate-200/80 dark:border-white/10 shadow-xl shadow-slate-100/50 dark:shadow-black/20 relative overflow-hidden">
                     <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
                         <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500">
-                            <Icon name="table" className="w-5 h-5" />
+                            <${Icon} name="table" className="w-5 h-5" />
                         </div>
-                        {title}
+                        ${title}
                     </h3>
                     
                     <div className="overflow-x-auto touch-scroll rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white/50 dark:bg-slate-900/50 max-h-[500px]">
@@ -992,46 +1144,46 @@
                                 <tr className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
                                     <th className="p-4 font-bold border-b border-slate-200 dark:border-slate-700/80 w-12 text-center">No.</th>
                                     
-                                    <th className="p-4 font-bold border-b border-slate-200 dark:border-slate-700/80 cursor-pointer group hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors select-none" onClick={() => requestSort('namaTPP')}>
-                                        <div className="flex items-center">Nama TPP {getSortIcon('namaTPP')}</div>
+                                    <th className="p-4 font-bold border-b border-slate-200 dark:border-slate-700/80 cursor-pointer group hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors select-none" onClick=${() => requestSort('namaTPP')}>
+                                        <div className="flex items-center">Nama TPP ${getSortIcon('namaTPP')}</div>
                                     </th>
                                     
-                                    <th className="p-4 font-bold border-b border-slate-200 dark:border-slate-700/80 cursor-pointer group hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors select-none" onClick={() => requestSort('statusIKL')}>
-                                        <div className="flex items-center">Inspeksi Kesling {getSortIcon('statusIKL')}</div>
+                                    <th className="p-4 font-bold border-b border-slate-200 dark:border-slate-700/80 cursor-pointer group hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors select-none" onClick=${() => requestSort('statusIKL')}>
+                                        <div className="flex items-center">Inspeksi Kesling ${getSortIcon('statusIKL')}</div>
                                     </th>
                                     
-                                    <th className="p-4 font-bold border-b border-slate-200 dark:border-slate-700/80 cursor-pointer group hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors select-none" onClick={() => requestSort('statusKapasitas')}>
-                                        <div className="flex items-center">Peningkatan Kapasitas {getSortIcon('statusKapasitas')}</div>
+                                    <th className="p-4 font-bold border-b border-slate-200 dark:border-slate-700/80 cursor-pointer group hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors select-none" onClick=${() => requestSort('statusKapasitas')}>
+                                        <div className="flex items-center">Peningkatan Kapasitas ${getSortIcon('statusKapasitas')}</div>
                                     </th>
                                     
-                                    <th className="p-4 font-bold border-b border-slate-200 dark:border-slate-700/80 cursor-pointer group hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors select-none" onClick={() => requestSort('statusPangan')}>
-                                        <div className="flex items-center">Pemeriksaan Pangan {getSortIcon('statusPangan')}</div>
+                                    <th className="p-4 font-bold border-b border-slate-200 dark:border-slate-700/80 cursor-pointer group hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors select-none" onClick=${() => requestSort('statusPangan')}>
+                                        <div className="flex items-center">Pemeriksaan Pangan ${getSortIcon('statusPangan')}</div>
                                     </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-700/80">
-                                {sortedData && sortedData.length > 0 ? sortedData.map((row, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="p-4 text-sm font-semibold text-slate-500 dark:text-slate-400 text-center border-r border-slate-100 dark:border-slate-700/50">{idx + 1}</td>
-                                        <td className="p-4 text-sm font-semibold text-slate-700 dark:text-slate-200 max-w-[200px] sm:max-w-xs truncate" title={row.namaTPP || '-'}>
-                                            {row.namaTPP || '-'}
+                                ${sortedData && sortedData.length > 0 ? sortedData.map((row, idx) => html`
+                                    <tr key=${idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="p-4 text-sm font-semibold text-slate-500 dark:text-slate-400 text-center border-r border-slate-100 dark:border-slate-700/50">${idx + 1}</td>
+                                        <td className="p-4 text-sm font-semibold text-slate-700 dark:text-slate-200 max-w-[200px] sm:max-w-xs truncate" title=${row.namaTPP || '-'}>
+                                            ${row.namaTPP || '-'}
                                         </td>
-                                        <td className="p-4"><StatusBadge text={row.statusIKL} /></td>
-                                        <td className="p-4"><StatusBadge text={row.statusKapasitas} /></td>
-                                        <td className="p-4"><StatusBadge text={row.statusPangan} /></td>
+                                        <td className="p-4"><${StatusBadge} text=${row.statusIKL} /></td>
+                                        <td className="p-4"><${StatusBadge} text=${row.statusKapasitas} /></td>
+                                        <td className="p-4"><${StatusBadge} text=${row.statusPangan} /></td>
                                     </tr>
-                                )) : (
+                                `) : html`
                                     <tr>
                                         <td colSpan="5" className="p-8 text-center text-slate-400 text-sm font-medium">
                                             Tidak ada data TPP pada kriteria dan wilayah ini.
                                         </td>
                                     </tr>
-                                )}
+                                `}
                             </tbody>
                         </table>
                     </div>
                 </div>
-            );
+            `;
         };
 
         // --- 5. KOMPONEN UTAMA (APP) ---
@@ -1061,7 +1213,6 @@
             const [filtersA, setFiltersA] = useState(initialFilterState);
             const [filtersB, setFiltersB] = useState(initialFilterState);
 
-            // Pembacaan URL Hash Awal
             useEffect(() => {
                 try {
                     const hash = window.location.hash;
@@ -1080,7 +1231,6 @@
                 } catch (e) {}
             }, []);
 
-            // Solusi History Loop Spamming
             useEffect(() => {
                 try {
                     if (rawData.length > 0) {
@@ -1124,7 +1274,6 @@
                 } catch (e) {}
             }, [isDarkMode]);
 
-            // ALGORITMA FETCH Murni Matriks Indeks
             useEffect(() => {
                 let isMounted = true;
 
@@ -1152,24 +1301,22 @@
                                         throw new Error("Gagal membaca struktur atau data CSV kosong.");
                                     }
 
-                                    // Hilangkan baris 0 (Header/Judul Kolom di Google Sheet)
                                     const dataRows = results.data.slice(1);
 
-                                    // Indeks statis posisi kolom di Google Sheets
                                     const indices = {
-                                        tahun: 1,           // Kolom B
-                                        provinsi: 2,        // Kolom C
-                                        kabupaten: 3,       // Kolom D
-                                        kecamatan: 4,       // Kolom E
-                                        puskesmas: 7,       // Kolom H
-                                        jenisTPP: 8,        // Kolom I
-                                        namaTPP: 9,         // Kolom J
-                                        tglSLHS: 19,        // Kolom T
-                                        slhsKadaluarsa: 20, // Kolom U
-                                        statusIKL: 21,      // Kolom V
-                                        statusKapasitas: 22,// Kolom W
-                                        statusPangan: 23,   // Kolom X
-                                        statusTPP: 25       // Kolom Z
+                                        tahun: 1,
+                                        provinsi: 2,
+                                        kabupaten: 3,
+                                        kecamatan: 4,
+                                        puskesmas: 7,
+                                        jenisTPP: 8,
+                                        namaTPP: 9,
+                                        tglSLHS: 19,
+                                        slhsKadaluarsa: 20,
+                                        statusIKL: 21,
+                                        statusKapasitas: 22,
+                                        statusPangan: 23,
+                                        statusTPP: 25
                                     };
 
                                     const parsedData = dataRows.map((row, index) => {
@@ -1231,13 +1378,12 @@
 
                 fetchGoogleSheetData();
 
-                // Timeout Pemuatan 30 Detik
                 const fallbackTimeout = setTimeout(() => {
                     if (isMounted) {
                         setIsLoading(prev => {
                             if (prev) {
                                 setError("Waktu tunggu pemuatan habis (Timeout 30s). Periksa koneksi internet Anda atau coba muat ulang.");
-                                return false; // Putus loop loading secara paksa
+                                return false; 
                             }
                             return prev;
                         });
@@ -1256,8 +1402,12 @@
             const kpisA = useMemo(() => calculateKPIs(filteredDataA, filtersA), [filteredDataA, filtersA]);
             const kpisB = useMemo(() => calculateKPIs(filteredDataB, filtersB), [filteredDataB, filtersB]);
 
+            // Menghitung data distribusi metrik spesifik untuk grafik
+            const chartDataA = useMemo(() => calculateChartData(filteredDataA), [filteredDataA]);
+            const chartDataB = useMemo(() => calculateChartData(filteredDataB), [filteredDataB]);
+
             if (isLoading) {
-                return (
+                return html`
                     <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-[#060913] text-white">
                         <div className="spinner-ring mb-6 scale-90 sm:scale-100">
                             <div></div><div></div><div></div>
@@ -1267,40 +1417,38 @@
                         </h2>
                         <p className="text-slate-500 text-xs sm:text-sm mt-2 font-medium tracking-wide">Terhubung dengan Google Sheet</p>
                     </div>
-                );
+                `;
             }
 
             if (error) {
-                return (
+                return html`
                     <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 text-center">
                         <div className="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg border border-rose-500/20 dark:border-rose-500/30 shadow-2xl mx-auto w-full fade-in">
                             <div className="w-14 h-14 sm:w-16 sm:h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-rose-500/5">
-                                <Icon name="alert-triangle" className="w-7 h-7 sm:w-8 sm:h-8" />
+                                <${Icon} name="alert-triangle" className="w-7 h-7 sm:w-8 sm:h-8" />
                             </div>
                             <h2 className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-white mb-2 tracking-tight">Akses Data Gagal</h2>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 font-medium leading-relaxed">{error}</p>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 font-medium leading-relaxed">${error}</p>
                             <div className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm text-left bg-rose-50/50 dark:bg-black/30 p-4 sm:p-5 rounded-2xl border border-rose-100 dark:border-rose-950/40 leading-relaxed shadow-inner">
                                 <b className="text-rose-600 dark:text-rose-400 font-bold block mb-1">💡 Solusi Cepat:</b> Buka tautan Google Sheet Anda, klik tombol "Bagikan" (Share) di pojok kanan atas, lalu pastikan Akses Umum adalah <b>"Siapa saja yang memiliki link"</b>. Kemudian muat ulang halaman.
                             </div>
                         </div>
                     </div>
-                );
+                `;
             }
 
-            return (
+            return html`
                 <div className="p-3 pb-safe sm:p-4 md:p-8 max-w-[1600px] mx-auto min-h-screen transition-colors duration-500 slide-up relative fade-in">
                     
-                    {/* CUSTOM UI TOAST NOTIFICATION */}
-                    {toastMsg && (
+                    ${toastMsg && html`
                         <div className="fixed bottom-8 right-4 sm:right-8 z-50 max-w-sm sm:max-w-md px-5 py-4 rounded-2xl glass-panel border-indigo-500/30 dark:border-indigo-400/40 shadow-2xl bg-white/95 dark:bg-slate-900/95 flex items-center gap-3 animate-bounce">
                             <div className="p-2 rounded-xl bg-indigo-500 text-white flex items-center justify-center shrink-0">
-                                <Icon name="info" className="w-4 h-4" />
+                                <${Icon} name="info" className="w-4 h-4" />
                             </div>
-                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-snug">{toastMsg}</span>
+                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-snug">${toastMsg}</span>
                         </div>
-                    )}
+                    `}
 
-                    {/* Header Kontainer Utama */}
                     <header className="flex flex-col mb-6 sm:mb-8 bg-white/40 dark:bg-slate-900/40 p-5 sm:p-6 rounded-3xl backdrop-blur-md border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-100/30 dark:shadow-black/10 gap-5 relative overflow-hidden group">
                         <div className="absolute -top-32 -left-32 w-64 h-64 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none group-hover:scale-125 duration-700"></div>
                         <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-emerald-500/5 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none group-hover:scale-125 duration-700"></div>
@@ -1309,20 +1457,19 @@
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 dark:from-indigo-400 dark:via-purple-400 dark:to-emerald-400 flex items-center tracking-tight leading-tight">
                                     <span className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-xl sm:rounded-2xl shadow-lg shadow-indigo-500/20 mr-3 flex items-center justify-center shrink-0">
-                                        <Icon name="layout-dashboard" className="w-6 h-6 sm:w-7 sm:h-7" />
+                                        <${Icon} name="layout-dashboard" className="w-6 h-6 sm:w-7 sm:h-7" />
                                     </span>
                                     Data TPP untuk FSVA
                                 </h1>
                                 <div className="mt-3 sm:mt-2.5">
                                     <p className="text-slate-500 dark:text-slate-400 text-xs flex items-center font-semibold tracking-wider">
-                                        <Icon name="clock" className="w-3.5 h-3.5 mr-1.5 text-indigo-500 shrink-0" /> 
-                                        <span className="truncate">Sinkronisasi: {lastSyncTime}</span>
+                                        <${Icon} name="clock" className="w-3.5 h-3.5 mr-1.5 text-indigo-500 shrink-0" /> 
+                                        <span className="truncate">Sinkronisasi: ${lastSyncTime}</span>
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Baris Tombol Aksi - Jadi Ikon Saja di Mobile, Text Tampil di Desktop */}
                         <div className="flex flex-row flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-3 pt-4 border-t border-slate-200/60 dark:border-slate-800/60 relative z-10 no-print">
                             
                             <a 
@@ -1330,90 +1477,98 @@
                                 target="_blank" rel="noopener noreferrer" 
                                 className="flex-1 sm:flex-none sm:w-auto flex items-center justify-center gap-2 p-3 sm:px-4 sm:py-2.5 min-h-[44px] text-sm font-bold rounded-xl bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-500 dark:hover:border-emerald-400/50 hover:bg-emerald-500/[0.04] dark:hover:bg-emerald-500/[0.04] transition-all duration-300 shadow-sm active:scale-95"
                             >
-                                <Icon name="external-link" className="w-5 h-5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
+                                <${Icon} name="external-link" className="w-5 h-5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
                                 <span className="hidden sm:inline">Buka Spreadsheet</span>
                             </a>
 
                             <button 
-                                onClick={() => { try { setIsDarkMode(!isDarkMode) } catch(err){} }}
+                                onClick=${() => { try { setIsDarkMode(!isDarkMode) } catch(err){} }}
                                 className="flex-1 sm:flex-none sm:w-auto flex items-center justify-center gap-2 p-3 sm:px-4 sm:py-2.5 min-h-[44px] text-sm font-bold rounded-xl bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 hover:border-amber-500 dark:hover:border-yellow-400/50 hover:bg-amber-500/[0.04] dark:hover:bg-yellow-400/[0.04] transition-all duration-300 shadow-sm active:scale-95"
                             >
-                                <Icon name={isDarkMode ? "sun" : "moon"} className="w-5 h-5 sm:w-4 sm:h-4 text-amber-500 dark:text-yellow-400 shrink-0" />
-                                <span className="hidden sm:inline">{isDarkMode ? 'Mode Terang' : 'Mode Gelap'}</span>
+                                <${Icon} name=${isDarkMode ? "sun" : "moon"} className="w-5 h-5 sm:w-4 sm:h-4 text-amber-500 dark:text-yellow-400 shrink-0" />
+                                <span className="hidden sm:inline">${isDarkMode ? 'Mode Terang' : 'Mode Gelap'}</span>
                             </button>
 
                             <button 
-                                onClick={handleShareLink}
+                                onClick=${handleShareLink}
                                 className="flex-1 sm:flex-none sm:w-auto flex items-center justify-center gap-2 p-3 sm:px-4 sm:py-2.5 min-h-[44px] text-sm font-bold rounded-xl bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-500 dark:hover:border-indigo-400/50 hover:bg-indigo-500/[0.04] dark:hover:bg-indigo-400/[0.04] transition-all duration-300 shadow-sm active:scale-95"
                             >
-                                <Icon name="share-2" className="w-5 h-5 sm:w-4 sm:h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                                <${Icon} name="share-2" className="w-5 h-5 sm:w-4 sm:h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
                                 <span className="hidden sm:inline">Bagikan Tampilan</span>
                             </button>
 
                             <button 
-                                onClick={() => { try { setIsComparing(!isComparing); } catch(err){} }}
-                                className={`flex-1 sm:flex-none sm:w-auto flex items-center justify-center gap-2 p-3 sm:px-4 sm:py-2.5 min-h-[44px] text-sm font-bold rounded-xl transition-all duration-300 shadow-sm active:scale-95 ${
+                                onClick=${() => { try { setIsComparing(!isComparing); } catch(err){} }}
+                                className=${`flex-1 sm:flex-none sm:w-auto flex items-center justify-center gap-2 p-3 sm:px-4 sm:py-2.5 min-h-[44px] text-sm font-bold rounded-xl transition-all duration-300 shadow-sm active:scale-95 ${
                                     isComparing 
                                         ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/20 border-transparent' 
                                         : 'bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-500 dark:hover:border-indigo-400/50 hover:bg-indigo-500/[0.04] dark:hover:bg-indigo-400/[0.04]'
                                 }`}
                             >
-                                <Icon name="git-compare" className={`w-5 h-5 sm:w-4 sm:h-4 shrink-0 ${isComparing ? 'text-white' : 'text-indigo-500 dark:text-indigo-400'} group-hover:rotate-180 duration-500`} />
-                                <span className="hidden sm:inline">{isComparing ? 'Tutup Pembanding' : 'Bandingkan Kriteria'}</span>
+                                <${Icon} name="git-compare" className=${`w-5 h-5 sm:w-4 sm:h-4 shrink-0 ${isComparing ? 'text-white' : 'text-indigo-500 dark:text-indigo-400'} group-hover:rotate-180 duration-500`} />
+                                <span className="hidden sm:inline">${isComparing ? 'Tutup Pembanding' : 'Bandingkan Kriteria'}</span>
                             </button>
 
                         </div>
                     </header>
 
-                    {/* Area Konten Utama Dashboard */}
                     <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 pb-10">
-                        {/* Kolom A */}
-                        <div className={`flex-1 flex flex-col transition-all duration-500 ${isComparing ? 'w-full lg:w-1/2 print-full-width' : 'w-full'}`}>
+                        <div className=${`flex-1 flex flex-col transition-all duration-500 ${isComparing ? 'w-full lg:w-1/2 print-full-width' : 'w-full'}`}>
                             <div className="no-print">
-                                <FilterGroup 
-                                    data={rawData} filters={filtersA} setFilters={setFiltersA} 
-                                    title={isComparing ? "Kriteria A" : "Filter Data TPP"} 
-                                    activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown} prefixId="fA"
+                                <${FilterGroup} 
+                                    data=${rawData} filters=${filtersA} setFilters=${setFiltersA} 
+                                    title=${isComparing ? "Kriteria A" : "Filter Data TPP"} 
+                                    activeDropdown=${activeDropdown} setActiveDropdown=${setActiveDropdown} prefixId="fA"
                                 />
                             </div>
                             
-                            <DashboardView title={isComparing ? "Hasil Kriteria A" : "Rekapitulasi Data TPP"} kpis={kpisA} isComparing={false} />
+                            <${DashboardView} 
+                                title=${isComparing ? "Hasil Kriteria A" : "Rekapitulasi Data TPP"} 
+                                kpis=${kpisA} 
+                                chartData=${chartDataA} 
+                                isComparing=${false} 
+                                isDarkMode=${isDarkMode} 
+                            />
                             
-                            {/* TABEL KOLOM A (Tampil jika kecamatan diisi) */}
-                            {filtersA.kecamatan && (
-                                <DataTable data={filteredDataA} title={isComparing ? "Daftar TPP - Kriteria A" : `Daftar TPP di Kecamatan ${filtersA.kecamatan}`} />
-                            )}
+                            ${filtersA.kecamatan && html`
+                                <${DataTable} data=${filteredDataA} title=${isComparing ? "Daftar TPP - Kriteria A" : `Daftar TPP di Kecamatan ${filtersA.kecamatan}`} />
+                            `}
                         </div>
 
-                        {/* Kolom B */}
-                        {isComparing && (
+                        ${isComparing && html`
                             <div className="flex-1 flex flex-col border-t lg:border-t-0 lg:border-l border-slate-200/80 dark:border-slate-800/80 pt-8 lg:pt-0 lg:pl-8 transition-all duration-500 fade-in print-full-width">
                                 <div className="no-print">
-                                    <FilterGroup 
-                                        data={rawData} filters={filtersB} setFilters={setFiltersB} 
+                                    <${FilterGroup} 
+                                        data=${rawData} filters=${filtersB} setFilters=${setFiltersB} 
                                         title="Kriteria B (Pembanding)" 
-                                        activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown} prefixId="fB"
+                                        activeDropdown=${activeDropdown} setActiveDropdown=${setActiveDropdown} prefixId="fB"
                                     />
                                 </div>
                                 
-                                <DashboardView 
-                                    title="Hasil Kriteria B vs A" kpis={kpisB} comparisonTargetKPIs={kpisA}
-                                    isComparing={true} filtersA={filtersA} filtersB={filtersB}
+                                <${DashboardView} 
+                                    title="Hasil Kriteria B vs A" 
+                                    kpis=${kpisB} 
+                                    chartData=${chartDataB}
+                                    comparisonTargetKPIs=${kpisA}
+                                    isComparing=${true} 
+                                    filtersA=${filtersA} 
+                                    filtersB=${filtersB}
+                                    isDarkMode=${isDarkMode}
                                 />
 
-                                {/* TABEL KOLOM B (Tampil jika kecamatan diisi) */}
-                                {filtersB.kecamatan && (
-                                    <DataTable data={filteredDataB} title={`Daftar TPP - Kriteria B (${filtersB.kecamatan})`} />
-                                )}
+                                ${filtersB.kecamatan && html`
+                                    <${DataTable} data=${filteredDataB} title=${`Daftar TPP - Kriteria B (${filtersB.kecamatan})`} />
+                                `}
                             </div>
-                        )}
+                        `}
                     </div>
                 </div>
-            );
+            `;
         };
 
+        // Render aplikasi
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(html`<${App} />`);
     </script>
 </body>
 </html>
