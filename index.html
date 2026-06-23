@@ -38,7 +38,7 @@
     <!-- PapaParse untuk membaca Google Sheet sebagai CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
-    <!-- Chart.js untuk visualisasi grafik Pie/Doughnut -->
+    <!-- Chart.js untuk visualisasi grafik Pie/Doughnut & Bar -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -213,7 +213,7 @@
             }
         };
 
-        // --- 0b. KOMPONEN ANIMASI ANGKA (Mulus, Cepat, dan Jelas) ---
+        // --- 0b. KOMPONEN ANIMASI ANGKA ---
         const AnimatedNumber = ({ value, isDecimal = false, maxDecimals = 2 }) => {
             const safeValue = (v) => (v === undefined || v === null || isNaN(Number(v))) ? 0 : Number(v);
             const [displayValue, setDisplayValue] = useState(safeValue(value));
@@ -236,7 +236,7 @@
                 }
 
                 let startTimestamp = null;
-                const duration = 700; // ms
+                const duration = 700; 
 
                 const easeOutQuart = (x) => 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 4);
 
@@ -302,7 +302,6 @@
             return html`<span ref=${containerRef} style=${{ display: 'contents' }}></span>`;
         };
 
-        // Komponen Status Badge untuk Tabel
         const StatusBadge = ({ text }) => {
             try {
                 if (!text || text === '-' || text.toLowerCase() === 'n/a') {
@@ -334,7 +333,6 @@
             }
         };
 
-        // MultiSelect
         const MultiSelect = ({ label, options, selectedValues, onChange, iconName, dropdownId, activeDropdown, setActiveDropdown }) => {
             const [searchQuery, setSearchQuery] = useState("");
             const dropdownRef = useRef(null);
@@ -447,7 +445,6 @@
             `;
         };
 
-        // Select komponen
         const Select = ({ label, value, options, onChange, disabled, iconName, dropdownId, activeDropdown, setActiveDropdown }) => {
             const [searchQuery, setSearchQuery] = useState("");
             const dropdownRef = useRef(null);
@@ -798,7 +795,6 @@
             }
         };
 
-        // Fungsi baru untuk menyusun data Chart
         const calculateChartData = (data) => {
             try {
                 const result = { ikl: {}, kapasitas: {}, pangan: {}, tpp: {} };
@@ -823,27 +819,86 @@
             }
         };
 
-        // Menentukan kombinasi warna cerdas untuk setiap status Chart
+        // Fungsi baru untuk menyusun data Chart Batang Berdasarkan Tahun (B)
+        const calculateBarChartData = (data) => {
+            try {
+                const yearsSet = new Set();
+                data.forEach(d => {
+                    if (d.tahun && !isNaN(parseInt(d.tahun))) {
+                        yearsSet.add(d.tahun);
+                    }
+                });
+                
+                const yearsArray = Array.from(yearsSet).sort((a, b) => parseInt(a) - parseInt(b));
+                
+                const result = {
+                    labels: yearsArray,
+                    totalTPP: yearsArray.map(() => 0),
+                    tppMS: yearsArray.map(() => 0),
+                    slhs: yearsArray.map(() => 0)
+                };
+
+                data.forEach(item => {
+                    const itemTahun = item.tahun;
+                    const yearIdx = yearsArray.indexOf(itemTahun);
+
+                    if (yearIdx !== -1) {
+                        // 1. Jumlah TPP per tahun
+                        result.totalTPP[yearIdx] += 1;
+
+                        // 2. TPP Memenuhi Syarat (Z) per tahun
+                        const tpp = item.statusTPP ? String(item.statusTPP).toLowerCase() : '';
+                        if (tpp.includes('memenuhi') && !tpp.includes('tidak memenuhi')) {
+                            result.tppMS[yearIdx] += 1;
+                        }
+                    }
+
+                    // 3. TPP Memiliki SLHS Aktif (T s/d U) per tahun
+                    let startYear = null, endYear = null;
+                    try {
+                        const sMatch = item.tglSLHS ? String(item.tglSLHS).match(/\b(20\d{2})\b/) : null;
+                        const eMatch = item.slhsKadaluarsa ? String(item.slhsKadaluarsa).match(/\b(20\d{2})\b/) : null;
+                        if (sMatch && eMatch) {
+                            startYear = parseInt(sMatch[1], 10);
+                            endYear = parseInt(eMatch[1], 10);
+                        }
+                    } catch (e) {}
+
+                    if (startYear !== null && endYear !== null) {
+                        yearsArray.forEach((y, idx) => {
+                            const yInt = parseInt(y, 10);
+                            // Jika tahun X-axis berada di antara masa berlaku SLHS (mengabaikan bulan/tanggal)
+                            if (yInt >= startYear && yInt <= endYear) {
+                                result.slhs[idx] += 1;
+                            }
+                        });
+                    }
+                });
+
+                return result;
+            } catch (err) {
+                console.error("Error in calculateBarChartData:", err);
+                return { labels: [], totalTPP: [], tppMS: [], slhs: [] };
+            }
+        };
+
         const getChartColors = (labels) => {
             try {
-                const colorMap = {
-                    'memenuhi syarat': '#10b981', // emerald-500
-                    'tidak memenuhi syarat': '#f43f5e', // rose-500
-                    'belum ada data': '#94a3b8', // slate-400
-                    '-': '#94a3b8',
-                    'n/a': '#94a3b8'
-                };
-                const defaultColors = ['#6366f1', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899'];
-                
-                return labels.map((label, i) => {
+                return labels.map((label) => {
                     const lowerLabel = String(label).toLowerCase().trim();
-                    if (colorMap[lowerLabel]) return colorMap[lowerLabel];
-                    if (lowerLabel.includes('tidak memenuhi')) return '#f43f5e';
-                    if (lowerLabel.includes('memenuhi')) return '#10b981';
-                    return defaultColors[i % defaultColors.length];
+                    if (lowerLabel.includes('memenuhi') && !lowerLabel.includes('tidak memenuhi')) {
+                        return '#10b981'; // emerald-500
+                    }
+                    if (lowerLabel.includes('tidak memenuhi')) {
+                        return '#ef4444'; // red-500
+                    }
+                    if (lowerLabel.includes('belum ikl') || lowerLabel.includes('belum diperiksa') || lowerLabel === 'belum') {
+                        return '#eab308'; // yellow-500
+                    }
+                    return '#94a3b8'; // slate-400
                 });
             } catch (err) {
-                return labels.map(() => '#6366f1');
+                return labels.map(() => '#94a3b8');
             }
         };
 
@@ -920,7 +975,6 @@
             `;
         };
 
-        // Komponen Baru untuk Grafik Pie/Doughnut Chart.js
         const PieChartCard = ({ title, dataObj, isDarkMode }) => {
             const canvasRef = useRef(null);
             const chartInstance = useRef(null);
@@ -928,16 +982,11 @@
             useEffect(() => {
                 try {
                     if (!canvasRef.current) return;
-                    
-                    // Bersihkan chart lama jika ada agar tidak tertumpuk
-                    if (chartInstance.current) {
-                        chartInstance.current.destroy();
-                    }
+                    if (chartInstance.current) chartInstance.current.destroy();
 
                     const labels = Object.keys(dataObj);
                     const dataPoints = Object.values(dataObj);
                     const bgColors = getChartColors(labels);
-
                     const ctx = canvasRef.current.getContext('2d');
                     
                     chartInstance.current = new Chart(ctx, {
@@ -954,7 +1003,7 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            cutout: '65%', // membuat tengahnya bolong (doughnut)
+                            cutout: '50%', 
                             plugins: {
                                 legend: {
                                     position: 'bottom',
@@ -980,32 +1029,26 @@
                                             try {
                                                 let label = context.label || '';
                                                 if (label) label += ': ';
+                                                
                                                 let value = context.parsed;
                                                 let total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                                let percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                                return label + value + ' Unit (' + percentage + '%)';
-                                            } catch (e) {
-                                                return context.parsed;
-                                            }
+                                                
+                                                let formattedValue = new Intl.NumberFormat('id-ID').format(value);
+                                                let percentage = total > 0 ? (value / total) * 100 : 0;
+                                                let formattedPercentage = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(percentage);
+                                                
+                                                return label + formattedValue + ' Unit (' + formattedPercentage + '%)';
+                                            } catch (e) { return context.parsed; }
                                         }
                                     }
                                 }
                             }
                         }
                     });
-                } catch (error) {
-                    console.error("Error drawing chart:", error);
-                }
+                } catch (error) { console.error("Error drawing pie chart:", error); }
 
-                // Cleanup ketika komponen dilepas
-                return () => {
-                    try {
-                        if (chartInstance.current) {
-                            chartInstance.current.destroy();
-                        }
-                    } catch (e) {}
-                };
-            }, [dataObj, isDarkMode]); // Render ulang saat dataObj atau mode gelap berubah
+                return () => { try { if (chartInstance.current) chartInstance.current.destroy(); } catch (e) {} };
+            }, [dataObj, isDarkMode]);
 
             return html`
                 <div className="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-between h-full hover:border-indigo-500/20 hover:-translate-y-1 transition-all duration-300">
@@ -1023,8 +1066,99 @@
             `;
         };
 
-        // Menambahkan prop chartData dan isDarkMode ke DashboardView
-        const DashboardView = ({ title, kpis, chartData, comparisonTargetKPIs, isComparing, filtersA, filtersB, isDarkMode }) => {
+        // Komponen Baru untuk Grafik Batang (Bar Chart)
+        const BarChartCard = ({ title, labels, dataPoints, chartColor, isDarkMode }) => {
+            const canvasRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            useEffect(() => {
+                try {
+                    if (!canvasRef.current) return;
+                    if (chartInstance.current) chartInstance.current.destroy();
+
+                    const ctx = canvasRef.current.getContext('2d');
+                    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+                    const textColor = isDarkMode ? '#cbd5e1' : '#475569';
+                    
+                    chartInstance.current = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: title,
+                                data: dataPoints,
+                                backgroundColor: chartColor,
+                                borderRadius: 6,
+                                barPercentage: 0.6,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                                    titleColor: isDarkMode ? '#f8fafc' : '#0f172a',
+                                    bodyColor: isDarkMode ? '#cbd5e1' : '#475569',
+                                    borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                                    borderWidth: 1,
+                                    titleFont: { size: 13, family: 'system-ui' },
+                                    bodyFont: { size: 12, family: 'system-ui', weight: 'bold' },
+                                    padding: 10,
+                                    cornerRadius: 8,
+                                    callbacks: {
+                                        label: function(context) {
+                                            try {
+                                                let value = context.parsed.y;
+                                                return new Intl.NumberFormat('id-ID').format(value) + ' Unit';
+                                            } catch(e) { return context.parsed.y; }
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: gridColor },
+                                    ticks: {
+                                        color: textColor,
+                                        font: { family: 'system-ui', size: 11 },
+                                        stepSize: 1
+                                    }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: {
+                                        color: textColor,
+                                        font: { family: 'system-ui', size: 11 }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } catch (error) { console.error("Error drawing bar chart:", error); }
+
+                return () => { try { if (chartInstance.current) chartInstance.current.destroy(); } catch (e) {} };
+            }, [labels, dataPoints, isDarkMode, chartColor]);
+
+            return html`
+                <div className="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-between h-full hover:border-indigo-500/20 hover:-translate-y-1 transition-all duration-300">
+                    <h4 className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 text-center w-full truncate" title=${title}>
+                        ${title}
+                    </h4>
+                    <div className="relative w-full h-[220px] flex items-center justify-center pb-2">
+                        ${labels.length === 0 ? html`
+                            <span className="text-xs text-slate-400">Tidak ada data tahun</span>
+                        ` : html`
+                            <canvas ref=${canvasRef}></canvas>
+                        `}
+                    </div>
+                </div>
+            `;
+        };
+
+        const DashboardView = ({ title, kpis, chartData, barChartData, comparisonTargetKPIs, isComparing, filtersA, filtersB, isDarkMode }) => {
             
             const isTimeCompare = useMemo(() => {
                 try {
@@ -1054,7 +1188,7 @@
                         </div>
                     ` : html`
                         <div className="flex flex-col gap-6">
-                            <!-- Metrik Angka -->
+                            <!-- Metrik Angka Utama -->
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                                 <${MetricCard} label="Total TPP" iconName="database" value=${kpis?.total} unit="Unit" compValue=${comparisonTargetKPIs?.total} themeGradient="from-indigo-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
                                 <${MetricCard} label="TPP Memiliki SLHS" iconName="badge-check" value=${kpis?.valSLHS} percentage=${kpis?.pctSLHS} unit="Unit" compValue=${comparisonTargetKPIs?.pctSLHS} themeGradient="from-cyan-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
@@ -1064,13 +1198,34 @@
                                 <${MetricCard} label="TPP Memenuhi Syarat" iconName="award" value=${kpis?.valTPP} percentage=${kpis?.pctTPP} unit="Unit" compValue=${comparisonTargetKPIs?.pctTPP} themeGradient="from-rose-500 to-pink-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
                             </div>
 
-                            <!-- Area Grafik Visual -->
+                            <!-- Area 3 Grafik Batang Berdasarkan Tahun -->
+                            ${barChartData && html`
+                                <div className="mt-2">
+                                    <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 pl-2 flex items-center gap-2 uppercase tracking-widest">
+                                        <${Icon} name="bar-chart" className="w-4 h-4 text-indigo-500" />
+                                        Tren Berdasarkan Tahun Input TPP
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 fade-in">
+                                        <${BarChartCard} title="Jumlah TPP" labels=${barChartData.labels} dataPoints=${barChartData.totalTPP} chartColor="#6366f1" isDarkMode=${isDarkMode} />
+                                        <${BarChartCard} title="TPP Memenuhi Syarat" labels=${barChartData.labels} dataPoints=${barChartData.tppMS} chartColor="#10b981" isDarkMode=${isDarkMode} />
+                                        <${BarChartCard} title="TPP Memiliki SLHS" labels=${barChartData.labels} dataPoints=${barChartData.slhs} chartColor="#06b6d4" isDarkMode=${isDarkMode} />
+                                    </div>
+                                </div>
+                            `}
+
+                            <!-- Area 4 Grafik Visual Pie -->
                             ${chartData && html`
-                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mt-2 fade-in">
-                                    <${PieChartCard} title="Inspeksi Kesling" dataObj=${chartData.ikl} isDarkMode=${isDarkMode} />
-                                    <${PieChartCard} title="Peningkatan Kapasitas" dataObj=${chartData.kapasitas} isDarkMode=${isDarkMode} />
-                                    <${PieChartCard} title="Pemeriksaan Pangan" dataObj=${chartData.pangan} isDarkMode=${isDarkMode} />
-                                    <${PieChartCard} title="TPP Memenuhi Syarat Akhir" dataObj=${chartData.tpp} isDarkMode=${isDarkMode} />
+                                <div className="mt-2">
+                                    <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 pl-2 flex items-center gap-2 uppercase tracking-widest">
+                                        <${Icon} name="pie-chart" className="w-4 h-4 text-indigo-500" />
+                                        Distribusi Status Pencapaian
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 fade-in">
+                                        <${PieChartCard} title="Inspeksi Kesling" dataObj=${chartData.ikl} isDarkMode=${isDarkMode} />
+                                        <${PieChartCard} title="Peningkatan Kapasitas" dataObj=${chartData.kapasitas} isDarkMode=${isDarkMode} />
+                                        <${PieChartCard} title="Pemeriksaan Pangan" dataObj=${chartData.pangan} isDarkMode=${isDarkMode} />
+                                        <${PieChartCard} title="TPP Memenuhi Syarat" dataObj=${chartData.tpp} isDarkMode=${isDarkMode} />
+                                    </div>
                                 </div>
                             `}
                         </div>
@@ -1402,9 +1557,12 @@
             const kpisA = useMemo(() => calculateKPIs(filteredDataA, filtersA), [filteredDataA, filtersA]);
             const kpisB = useMemo(() => calculateKPIs(filteredDataB, filtersB), [filteredDataB, filtersB]);
 
-            // Menghitung data distribusi metrik spesifik untuk grafik
             const chartDataA = useMemo(() => calculateChartData(filteredDataA), [filteredDataA]);
             const chartDataB = useMemo(() => calculateChartData(filteredDataB), [filteredDataB]);
+
+            // Menghitung data grafik batang untuk masing-masing kriteria filter
+            const barChartDataA = useMemo(() => calculateBarChartData(filteredDataA), [filteredDataA]);
+            const barChartDataB = useMemo(() => calculateBarChartData(filteredDataB), [filteredDataB]);
 
             if (isLoading) {
                 return html`
@@ -1526,6 +1684,7 @@
                                 title=${isComparing ? "Hasil Kriteria A" : "Rekapitulasi Data TPP"} 
                                 kpis=${kpisA} 
                                 chartData=${chartDataA} 
+                                barChartData=${barChartDataA}
                                 isComparing=${false} 
                                 isDarkMode=${isDarkMode} 
                             />
@@ -1549,6 +1708,7 @@
                                     title="Hasil Kriteria B vs A" 
                                     kpis=${kpisB} 
                                     chartData=${chartDataB}
+                                    barChartData=${barChartDataB}
                                     comparisonTargetKPIs=${kpisA}
                                     isComparing=${true} 
                                     filtersA=${filtersA} 
