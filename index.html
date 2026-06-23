@@ -380,7 +380,7 @@
 
             return html`
                 <div className=${`relative w-full ${isThisOpen ? 'z-30' : 'z-10'}`} ref=${dropdownRef}>
-                    <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 mb-1.5 pl-1">
+                    <label className="flex items-center text-xs font-bold tracking-wider text-slate-400 dark:text-slate-400 mb-1.5 pl-1">
                         ${iconName && html`<${Icon} name=${iconName} className="w-3.5 h-3.5 mr-1.5 text-indigo-500/70 dark:text-indigo-400/70" />`}
                         ${label}
                     </label>
@@ -488,7 +488,7 @@
 
             return html`
                 <div className=${`relative w-full ${isThisOpen ? 'z-30' : 'z-10'}`} ref=${dropdownRef}>
-                    <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 mb-1.5 pl-1">
+                    <label className="flex items-center text-xs font-bold tracking-wider text-slate-400 dark:text-slate-400 mb-1.5 pl-1">
                         ${iconName && html`<${Icon} name=${iconName} className="w-3.5 h-3.5 mr-1.5 text-indigo-500/70 dark:text-indigo-400/70" />`}
                         ${label}
                     </label>
@@ -819,7 +819,7 @@
             }
         };
 
-        // Fungsi baru untuk menyusun data Chart Batang Berdasarkan Tahun (B)
+        // Fungsi menyusun data Chart Batang Berdasarkan Tahun (B)
         const calculateBarChartData = (data) => {
             try {
                 const yearsSet = new Set();
@@ -867,7 +867,7 @@
                     if (startYear !== null && endYear !== null) {
                         yearsArray.forEach((y, idx) => {
                             const yInt = parseInt(y, 10);
-                            // Jika tahun X-axis berada di antara masa berlaku SLHS (mengabaikan bulan/tanggal)
+                            // Jika tahun X-axis berada di antara masa berlaku SLHS
                             if (yInt >= startYear && yInt <= endYear) {
                                 result.slhs[idx] += 1;
                             }
@@ -882,23 +882,61 @@
             }
         };
 
+        // Kustomisasi warna Pie Chart
         const getChartColors = (labels) => {
             try {
                 return labels.map((label) => {
                     const lowerLabel = String(label).toLowerCase().trim();
                     if (lowerLabel.includes('memenuhi') && !lowerLabel.includes('tidak memenuhi')) {
-                        return '#10b981'; // emerald-500
+                        return '#7BB662'; // Hijau sesuai permintaan
                     }
                     if (lowerLabel.includes('tidak memenuhi')) {
-                        return '#ef4444'; // red-500
+                        return '#E03C32'; // Merah sesuai permintaan
                     }
                     if (lowerLabel.includes('belum ikl') || lowerLabel.includes('belum diperiksa') || lowerLabel === 'belum') {
-                        return '#eab308'; // yellow-500
+                        return '#FFD301'; // Kuning sesuai permintaan
                     }
-                    return '#94a3b8'; // slate-400
+                    return '#cbd5e1'; // Abu-abu lembut (slate-300) untuk data tak tersedia
                 });
             } catch (err) {
-                return labels.map(() => '#94a3b8');
+                return labels.map(() => '#cbd5e1');
+            }
+        };
+
+        // Fungsi pembantu untuk mengurutkan data pie berdasarkan prioritas legend
+        const sortPieData = (title, dataObj) => {
+            try {
+                const keys = Object.keys(dataObj);
+                let order = [];
+                const lowerTitle = title.toLowerCase();
+                
+                if (lowerTitle.includes('kesling')) {
+                    order = ['memenuhi syarat', 'tidak memenuhi syarat', 'belum ikl'];
+                } else if (lowerTitle.includes('kapasitas')) {
+                    order = ['memenuhi syarat', 'tidak memenuhi syarat'];
+                } else if (lowerTitle.includes('pangan')) {
+                    order = ['memenuhi syarat', 'tidak memenuhi syarat', 'belum diperiksa'];
+                } else if (lowerTitle.includes('status tpp') || lowerTitle.includes('tpp memenuhi syarat')) {
+                    order = ['memenuhi syarat', 'tidak memenuhi syarat'];
+                }
+
+                keys.sort((a, b) => {
+                    const idxA = order.indexOf(a.toLowerCase().trim());
+                    const idxB = order.indexOf(b.toLowerCase().trim());
+                    
+                    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                    if (idxA !== -1) return -1;
+                    if (idxB !== -1) return 1;
+                    return a.localeCompare(b);
+                });
+
+                const sortedObj = {};
+                keys.forEach(k => {
+                    sortedObj[k] = dataObj[k];
+                });
+                return sortedObj;
+            } catch (err) {
+                return dataObj;
             }
         };
 
@@ -942,7 +980,7 @@
                     <div className=${`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-5 dark:opacity-[0.08] blur-2xl group-hover:opacity-15 duration-500 bg-gradient-to-br ${themeGradient}`}></div>
                     
                     <div className="flex justify-between items-start mb-4 gap-2">
-                        <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest leading-relaxed flex-1">${label}</span>
+                        <span className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold tracking-widest leading-relaxed flex-1">${label}</span>
                         ${iconName && html`
                             <div className=${`p-2 sm:p-2.5 rounded-xl bg-gradient-to-br ${themeGradient} text-white flex items-center justify-center shadow-lg shadow-indigo-500/10 dark:shadow-indigo-500/2 shrink-0`}>
                                 <${Icon} name=${iconName} className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -956,7 +994,7 @@
                         </span>
                         <span className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-semibold">${unit}</span>
                         ${percentage !== undefined && html`
-                            <span className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 ml-1 sm:ml-1.5">
+                            <span className="text-lg sm:text-xl font-bold text-[#A680C2] dark:text-[#A680C2] ml-1 sm:ml-1.5">
                                 (<${AnimatedNumber} value=${percentage} isDecimal=${true} maxDecimals=${2} />%)
                             </span>
                         `}
@@ -984,8 +1022,10 @@
                     if (!canvasRef.current) return;
                     if (chartInstance.current) chartInstance.current.destroy();
 
-                    const labels = Object.keys(dataObj);
-                    const dataPoints = Object.values(dataObj);
+                    // Urutkan objek data terlebih dahulu agar legendanya tersusun rapi sesuai urutan
+                    const sortedData = sortPieData(title, dataObj);
+                    const labels = Object.keys(sortedData);
+                    const dataPoints = Object.values(sortedData);
                     const bgColors = getChartColors(labels);
                     const ctx = canvasRef.current.getContext('2d');
                     
@@ -996,14 +1036,20 @@
                             datasets: [{
                                 data: dataPoints,
                                 backgroundColor: bgColors,
-                                borderWidth: 0,
-                                hoverOffset: 4
+                                borderWidth: 2,
+                                borderColor: isDarkMode ? '#1e293b' : '#ffffff',
+                                hoverOffset: 15, // Efek pop-out/mencuat keluar ketika di-hover
+                                hoverBorderWidth: 0
                             }]
                         },
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            cutout: '50%', 
+                            cutout: '50%', // Bagian dalam lingkaran lebih tebal
+                            animation: {
+                                animateScale: true,
+                                animateRotate: true
+                            },
                             plugins: {
                                 legend: {
                                     position: 'bottom',
@@ -1025,11 +1071,13 @@
                                     padding: 10,
                                     cornerRadius: 8,
                                     callbacks: {
+                                        title: function() {
+                                            // Kosongkan bagian title tooltip agar label status tidak ditulis ulang dua kali
+                                            return '';
+                                        },
                                         label: function(context) {
                                             try {
                                                 let label = context.label || '';
-                                                if (label) label += ': ';
-                                                
                                                 let value = context.parsed;
                                                 let total = context.dataset.data.reduce((a, b) => a + b, 0);
                                                 
@@ -1037,7 +1085,8 @@
                                                 let percentage = total > 0 ? (value / total) * 100 : 0;
                                                 let formattedPercentage = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(percentage);
                                                 
-                                                return label + formattedValue + ' Unit (' + formattedPercentage + '%)';
+                                                // Format tooltip bersih: "Nama Status: X.XXX Unit (XX,XX%)"
+                                                return ` ${label}: ${formattedValue} Unit (${formattedPercentage}%)`;
                                             } catch (e) { return context.parsed; }
                                         }
                                     }
@@ -1048,7 +1097,7 @@
                 } catch (error) { console.error("Error drawing pie chart:", error); }
 
                 return () => { try { if (chartInstance.current) chartInstance.current.destroy(); } catch (e) {} };
-            }, [dataObj, isDarkMode]);
+            }, [dataObj, isDarkMode, title]);
 
             return html`
                 <div className="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-between h-full hover:border-indigo-500/20 hover:-translate-y-1 transition-all duration-300">
@@ -1066,7 +1115,6 @@
             `;
         };
 
-        // Komponen Baru untuk Grafik Batang (Bar Chart)
         const BarChartCard = ({ title, labels, dataPoints, chartColor, isDarkMode }) => {
             const canvasRef = useRef(null);
             const chartInstance = useRef(null);
@@ -1190,25 +1238,25 @@
                         <div className="flex flex-col gap-6">
                             <!-- Metrik Angka Utama -->
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-                                <${MetricCard} label="Total TPP" iconName="database" value=${kpis?.total} unit="Unit" compValue=${comparisonTargetKPIs?.total} themeGradient="from-indigo-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                <${MetricCard} label="TPP Memiliki SLHS" iconName="badge-check" value=${kpis?.valSLHS} percentage=${kpis?.pctSLHS} unit="Unit" compValue=${comparisonTargetKPIs?.pctSLHS} themeGradient="from-cyan-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                <${MetricCard} label="Memenuhi Syarat Inspeksi Kesling" iconName="check-circle" value=${kpis?.valIKL} percentage=${kpis?.pctIKL} unit="Unit" compValue=${comparisonTargetKPIs?.pctIKL} themeGradient="from-emerald-500 to-teal-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                <${MetricCard} label="Memenuhi Syarat Peningkatan Kapasitas" iconName="bar-chart-2" value=${kpis?.valKapasitas} percentage=${kpis?.pctKapasitas} unit="Unit" compValue=${comparisonTargetKPIs?.pctKapasitas} themeGradient="from-amber-500 to-orange-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                <${MetricCard} label="Memenuhi Syarat Pemeriksaan Pangan" iconName="shield" value=${kpis?.valPangan} percentage=${kpis?.pctPangan} unit="Unit" compValue=${comparisonTargetKPIs?.pctPangan} themeGradient="from-purple-500 to-fuchsia-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                <${MetricCard} label="TPP Memenuhi Syarat" iconName="award" value=${kpis?.valTPP} percentage=${kpis?.pctTPP} unit="Unit" compValue=${comparisonTargetKPIs?.pctTPP} themeGradient="from-rose-500 to-pink-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                <${MetricCard} label="Total TPP" iconName="database" value=${kpis?.total} unit="unit" compValue=${comparisonTargetKPIs?.total} themeGradient="from-indigo-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                <${MetricCard} label="TPP Memiliki SLHS" iconName="badge-check" value=${kpis?.valSLHS} percentage=${kpis?.pctSLHS} unit="unit" compValue=${comparisonTargetKPIs?.pctSLHS} themeGradient="from-cyan-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                <${MetricCard} label="Memenuhi Syarat Inspeksi Kesling" iconName="check-circle" value=${kpis?.valIKL} percentage=${kpis?.pctIKL} unit="unit" compValue=${comparisonTargetKPIs?.pctIKL} themeGradient="from-emerald-500 to-teal-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                <${MetricCard} label="Memenuhi Syarat Peningkatan Kapasitas" iconName="bar-chart-2" value=${kpis?.valKapasitas} percentage=${kpis?.pctKapasitas} unit="init" compValue=${comparisonTargetKPIs?.pctKapasitas} themeGradient="from-amber-500 to-orange-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                <${MetricCard} label="Memenuhi Syarat Pemeriksaan Pangan" iconName="shield" value=${kpis?.valPangan} percentage=${kpis?.pctPangan} unit="unit" compValue=${comparisonTargetKPIs?.pctPangan} themeGradient="from-purple-500 to-fuchsia-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                <${MetricCard} label="TPP Memenuhi Syarat" iconName="award" value=${kpis?.valTPP} percentage=${kpis?.pctTPP} unit="unit" compValue=${comparisonTargetKPIs?.pctTPP} themeGradient="from-rose-500 to-pink-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
                             </div>
 
                             <!-- Area 3 Grafik Batang Berdasarkan Tahun -->
                             ${barChartData && html`
                                 <div className="mt-2">
-                                    <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 pl-2 flex items-center gap-2 uppercase tracking-widest">
+                                    <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 pl-2 flex items-center gap-2 tracking-wide titlecase tracking-wider">
                                         <${Icon} name="bar-chart" className="w-4 h-4 text-indigo-500" />
-                                        Tren Data TPP
+                                        Grafik Tren TPP
                                     </h4>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 fade-in">
-                                        <${BarChartCard} title="Jumlah TPP" labels=${barChartData.labels} dataPoints=${barChartData.totalTPP} chartColor="#6366f1" isDarkMode=${isDarkMode} />
-                                        <${BarChartCard} title="TPP Memenuhi Syarat" labels=${barChartData.labels} dataPoints=${barChartData.tppMS} chartColor="#10b981" isDarkMode=${isDarkMode} />
-                                        <${BarChartCard} title="TPP Memiliki SLHS" labels=${barChartData.labels} dataPoints=${barChartData.slhs} chartColor="#06b6d4" isDarkMode=${isDarkMode} />
+                                        <${BarChartCard} title="Jumlah TPP" labels=${barChartData.labels} dataPoints=${barChartData.totalTPP} chartColor="#5E91F2" isDarkMode=${isDarkMode} />
+                                        <${BarChartCard} title="TPP Memenuhi Syarat" labels=${barChartData.labels} dataPoints=${barChartData.tppMS} chartColor="#4B7AFA" isDarkMode=${isDarkMode} />
+                                        <${BarChartCard} title="TPP Memiliki SLHS" labels=${barChartData.labels} dataPoints=${barChartData.slhs} chartColor="#2D5EED" isDarkMode=${isDarkMode} />
                                     </div>
                                 </div>
                             `}
@@ -1216,7 +1264,7 @@
                             <!-- Area 4 Grafik Visual Pie -->
                             ${chartData && html`
                                 <div className="mt-2">
-                                    <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 pl-2 flex items-center gap-2 uppercase tracking-widest">
+                                    <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 pl-2 flex items-center gap-2 tracking-wide titlecase tracking-wider">
                                         <${Icon} name="pie-chart" className="w-4 h-4 text-indigo-500" />
                                         Distribusi Status TPP
                                     </h4>
@@ -1224,7 +1272,7 @@
                                         <${PieChartCard} title="Inspeksi Kesling" dataObj=${chartData.ikl} isDarkMode=${isDarkMode} />
                                         <${PieChartCard} title="Peningkatan Kapasitas" dataObj=${chartData.kapasitas} isDarkMode=${isDarkMode} />
                                         <${PieChartCard} title="Pemeriksaan Pangan" dataObj=${chartData.pangan} isDarkMode=${isDarkMode} />
-                                        <${PieChartCard} title="TPP Memenuhi Syarat" dataObj=${chartData.tpp} isDarkMode=${isDarkMode} />
+                                        <${PieChartCard} title="Status TPP" dataObj=${chartData.tpp} isDarkMode=${isDarkMode} />
                                     </div>
                                 </div>
                             `}
@@ -1560,7 +1608,6 @@
             const chartDataA = useMemo(() => calculateChartData(filteredDataA), [filteredDataA]);
             const chartDataB = useMemo(() => calculateChartData(filteredDataB), [filteredDataB]);
 
-            // Menghitung data grafik batang untuk masing-masing kriteria filter
             const barChartDataA = useMemo(() => calculateBarChartData(filteredDataA), [filteredDataA]);
             const barChartDataB = useMemo(() => calculateBarChartData(filteredDataB), [filteredDataB]);
 
