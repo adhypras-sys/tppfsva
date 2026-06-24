@@ -107,37 +107,37 @@
         ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.25); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
 
-        /* Animasi Dropdown Menu */
+        /* --- ANIMASI BARU (MANTAP, HALUS, RAPI) --- */
+        .animate-fade-in-up {
+            animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeInUp {
+            0% { opacity: 0; transform: translateY(25px) scale(0.97); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
         .dropdown-menu {
-            animation: dropdownBounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation: dropdownBounce 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
             transform-origin: top;
         }
 
         @keyframes dropdownBounce {
-            from { opacity: 0; transform: scaleY(0.9) translateY(-8px); }
-            to { opacity: 1; transform: scaleY(1) translateY(0); }
+            0% { opacity: 0; transform: scaleY(0.9) translateY(-10px); }
+            100% { opacity: 1; transform: scaleY(1) translateY(0); }
         }
 
-        /* Animasi Slide-Up & Fade In */
         .slide-up { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(30px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Animasi Denyut Teks */
-        .pulse-text { animation: pulseText 2s ease-in-out infinite; }
-
+        .pulse-text { animation: pulseText 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulseText {
             0%, 100% { opacity: 0.7; filter: drop-shadow(0 0 2px rgba(99, 102, 241, 0)); }
-            50% { opacity: 1; filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.4)); }
+            50% { opacity: 1; filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.5)); }
         }
 
         /* Animasi Ring Spinner */
@@ -316,82 +316,80 @@
             return html`<span ref=${containerRef} style=${{ display: 'contents' }}></span>`;
         };
 
-        // Komponen Modal QR & Share
-        const ShareModal = ({ isOpen, onClose, url, showToast }) => {
-            const qrRef = useRef(null);
-            
+        // Komponen Kartu QR Code di Pojok Kanan Bawah
+        const ShareCard = ({ isOpen, onClose, url, showToast }) => {
+            const [qrSrc, setQrSrc] = useState("");
+
             useEffect(() => {
                 try {
-                    if (isOpen && qrRef.current && window.QRious) {
-                        new QRious({
-                            element: qrRef.current,
+                    if (isOpen && window.QRious && url) {
+                        // Menggunakan metode toDataURL() memastikan QR digenerate sebagai file statis
+                        // mengatasi isu render timing pada elemen canvas React
+                        const qr = new QRious({
                             value: url,
-                            size: 200,
+                            size: 250,
                             level: 'H',
                             backgroundAlpha: 1,
                             backgroundColor: '#ffffff',
                             foreground: '#0f172a'
                         });
+                        setQrSrc(qr.toDataURL());
                     }
-                } catch(e) { console.error(e); }
+                } catch(e) { console.error("Error saat merender QR Code:", e); }
             }, [isOpen, url]);
 
             if (!isOpen) return null;
 
             return html`
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick=${onClose}></div>
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-800 relative z-10 fade-in flex flex-col items-center">
-                        <button onClick=${onClose} className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 transition-colors">
-                            <${Icon} name="x" className="w-4 h-4" />
-                        </button>
-                        
-                        <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-4">
-                            <${Icon} name="share-2" className="w-6 h-6" />
+                <div className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-[100] w-[calc(100vw-2rem)] sm:w-[340px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-[2rem] p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.3)] dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.6)] border border-slate-200/80 dark:border-slate-700/80 animate-fade-in-up flex flex-col group">
+                    <button onClick=${onClose} className="absolute top-4 right-4 p-2 rounded-full bg-slate-100/80 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-500 transition-colors z-10">
+                        <${Icon} name="x" className="w-4 h-4" />
+                    </button>
+                    
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
+                            <${Icon} name="share-2" className="w-5 h-5" />
                         </div>
-                        
-                        <h3 className="text-xl font-extrabold text-slate-800 dark:text-white mb-2 text-center">Bagikan Tampilan</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">Pindai kode QR atau salin tautan di bawah untuk membagikan komparasi & filter saat ini.</p>
-                        
-                        <div className="bg-white p-3 rounded-2xl shadow-inner border border-slate-200 mb-6 flex items-center justify-center aspect-square">
-                            <canvas ref=${qrRef}></canvas>
+                        <div>
+                            <h3 className="text-base font-extrabold text-slate-800 dark:text-white leading-tight">Bagikan Tampilan</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Pindai QR atau salin tautan.</p>
                         </div>
-                        
-                        <div className="w-full flex items-center gap-2 mb-4 relative">
-                            <input 
-                                type="text" 
-                                readOnly 
-                                value=${url} 
-                                className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-600 dark:text-slate-300 text-xs py-3 pl-4 pr-12 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50" 
-                            />
-                            <button 
-                                onClick=${() => {
-                                    try {
-                                        navigator.clipboard.writeText(url).then(() => {
-                                            showToast("Tautan berhasil disalin!");
-                                        }).catch(() => {
-                                            const textArea = document.createElement("textarea");
-                                            textArea.value = url;
-                                            document.body.appendChild(textArea);
-                                            textArea.select();
-                                            document.execCommand('copy');
-                                            document.body.removeChild(textArea);
-                                            showToast("Tautan disalin! (Metode standar)");
-                                        });
-                                    } catch(e) {}
-                                }}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
-                                title="Salin Tautan"
-                            >
-                                <${Icon} name="copy" className="w-5 h-5" />
-                            </button>
-                        </div>
-                        
+                    </div>
+                    
+                    <div className="bg-white p-3 rounded-2xl shadow-inner border border-slate-200 mb-5 flex items-center justify-center aspect-square relative overflow-hidden group-hover:border-indigo-200 transition-colors duration-300">
+                        ${qrSrc 
+                            ? html`<img src=${qrSrc} alt="QR Code Bagikan Tampilan" className="w-full h-full object-contain rounded-xl" />` 
+                            : html`<div className="w-full h-full flex items-center justify-center text-slate-300"><${Icon} name="loader" className="w-8 h-8 animate-spin" /></div>`
+                        }
+                    </div>
+                    
+                    <div className="w-full flex items-center gap-2 relative">
+                        <input 
+                            type="text" 
+                            readOnly 
+                            value=${url} 
+                            className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-600 dark:text-slate-300 text-xs py-3 pl-4 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" 
+                        />
                         <button 
-                            onClick=${onClose} 
-                            className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-sm transition-colors"
+                            onClick=${() => {
+                                try {
+                                    navigator.clipboard.writeText(url).then(() => {
+                                        showToast("Tautan berhasil disalin!");
+                                    }).catch(() => {
+                                        const textArea = document.createElement("textarea");
+                                        textArea.value = url;
+                                        document.body.appendChild(textArea);
+                                        textArea.select();
+                                        document.execCommand('copy');
+                                        document.body.removeChild(textArea);
+                                        showToast("Tautan disalin! (Metode standar)");
+                                    });
+                                } catch(e) {}
+                            }}
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg transition-colors"
+                            title="Salin Tautan"
                         >
-                            Tutup Tampilan
+                            <${Icon} name="copy" className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
@@ -407,7 +405,7 @@
                     title=${isCollapsed ? "Tampilkan Bagian Ini" : "Sembunyikan Bagian Ini"}
                 >
                     <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <span className="p-2 sm:p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 shadow-inner group-hover:bg-indigo-500/20 transition-colors duration-300">
+                        <span className="p-2 sm:p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 shadow-inner group-hover:bg-indigo-500/20 group-hover:scale-105 transition-all duration-300">
                             <${Icon} name=${iconName} className="w-5 h-5 sm:w-6 sm:h-6" />
                         </span>
                         <h2 className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight truncate select-none">
@@ -768,7 +766,7 @@
                     />
                     
                     ${!isCollapsed && html`
-                        <div className="fade-in mt-4">
+                        <div className="animate-fade-in-up mt-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                                 <${Select} 
                                     label="Provinsi" iconName="map"
@@ -1069,21 +1067,23 @@
                 if (isTimeCompare) {
                     return {
                         text: `${isIncrease ? 'Naik' : 'Turun'} ${formattedDiff}`,
-                        color: isIncrease ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' : 'text-rose-600 dark:text-rose-400 bg-rose-500/10',
+                        color: isIncrease ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/15' : 'text-rose-700 dark:text-rose-300 bg-rose-500/15',
+                        borderColor: isIncrease ? 'border-emerald-500/20 dark:border-emerald-500/30' : 'border-rose-500/20 dark:border-rose-500/30',
                         icon: isIncrease ? 'trending-up' : 'trending-down'
                     };
                 } else {
                     return {
                         text: `${isIncrease ? 'Lebih Tinggi' : 'Lebih Rendah'} ${formattedDiff}`,
-                        color: isIncrease ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' : 'text-rose-600 dark:text-rose-400 bg-rose-500/10',
+                        color: isIncrease ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/15' : 'text-rose-700 dark:text-rose-300 bg-rose-500/15',
+                        borderColor: isIncrease ? 'border-emerald-500/20 dark:border-emerald-500/30' : 'border-rose-500/20 dark:border-rose-500/30',
                         icon: isIncrease ? 'arrow-up' : 'arrow-down'
                     };
                 }
             } catch (err) { return null; }
         };
 
-        // --- 4. KOMPONEN VISUALISASI METRIK & GRAFIK ---
-        const MetricCard = ({ label, value, percentage, unit, compValue, iconName, themeGradient, isComparing, isTimeCompare }) => {
+        // --- 4. KOMPONEN VISUALISASI METRIK & GRAFIK TAMPILAN BARU ---
+        const MetricCard = ({ label, value, percentage, unit, compValue, iconName, baseColor, isComparing, isTimeCompare, delayIdx = 0 }) => {
             let compInfo = null;
             try {
                 if (isComparing && compValue !== undefined) {
@@ -1092,34 +1092,53 @@
                 }
             } catch (err) {}
 
+            const colors = {
+                indigo: { gradient: 'from-indigo-500 to-blue-600', shadow: 'shadow-indigo-500/30' },
+                cyan:   { gradient: 'from-cyan-500 to-blue-500', shadow: 'shadow-cyan-500/30' },
+                emerald:{ gradient: 'from-emerald-500 to-teal-500', shadow: 'shadow-emerald-500/30' },
+                amber:  { gradient: 'from-amber-500 to-orange-500', shadow: 'shadow-amber-500/30' },
+                purple: { gradient: 'from-purple-500 to-fuchsia-500', shadow: 'shadow-purple-500/30' },
+                rose:   { gradient: 'from-rose-500 to-pink-500', shadow: 'shadow-rose-500/30' }
+            };
+            const c = colors[baseColor] || colors.indigo;
+
             return html`
-                <div className="glass-panel p-5 sm:p-6 rounded-3xl flex flex-col relative overflow-hidden group hover:-translate-y-1.5 duration-300 hover:shadow-2xl dark:hover:shadow-indigo-500/5 hover:border-indigo-500/25 dark:hover:border-indigo-400/25 h-full">
-                    <div className=${`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-5 dark:opacity-[0.08] blur-2xl group-hover:opacity-15 duration-500 bg-gradient-to-br ${themeGradient}`}></div>
+                <div 
+                    className="glass-panel p-5 sm:p-6 rounded-[2rem] flex flex-col relative overflow-hidden group hover:-translate-y-2 hover:scale-[1.015] transition-all duration-500 border border-slate-200/80 dark:border-slate-700/50 hover:shadow-2xl h-full animate-fade-in-up"
+                    style=${{ animationDelay: (delayIdx * 75) + 'ms', animationFillMode: 'both' }}
+                >
+                    <div className=${`absolute -right-12 -top-12 w-40 h-40 rounded-full opacity-[0.05] dark:opacity-[0.1] blur-3xl group-hover:opacity-25 transition-opacity duration-700 bg-gradient-to-br ${c.gradient}`}></div>
                     
-                    <div className="flex items-start gap-3 mb-4">
-                        <div className=${`p-2 sm:p-2.5 rounded-xl bg-gradient-to-br ${themeGradient} text-white flex items-center justify-center shadow-lg shadow-indigo-500/10 dark:shadow-indigo-500/2 shrink-0`}>
-                            <${Icon} name=${iconName} className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <div className="flex items-start gap-3.5 mb-6 relative z-10">
+                        <div className=${`p-3 sm:p-3.5 rounded-2xl bg-gradient-to-br ${c.gradient} text-white flex items-center justify-center shadow-lg ${c.shadow} shrink-0 transform group-hover:rotate-6 transition-transform duration-500`}>
+                            <${Icon} name=${iconName} className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-200 tracking-wide flex-1 pt-1 leading-snug">${label}</span>
+                        <span className="text-sm sm:text-[15px] font-extrabold text-slate-700 dark:text-slate-200 tracking-wide flex-1 pt-1.5 leading-snug">${label}</span>
                     </div>
                     
-                    <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1 mt-auto">
-                        <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-800 dark:text-white group-hover:scale-[1.01] transition-transform duration-300">
-                            <${AnimatedNumber} value=${value} isDecimal=${false} />
-                        </span>
-                        <span className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-semibold">${unit}</span>
-                        ${percentage !== undefined && html`
-                            <span className="text-lg sm:text-xl font-bold text-[#A680C2] dark:text-[#A680C2] ml-1 sm:ml-1.5">
-                                (<${AnimatedNumber} value=${percentage} isDecimal=${true} maxDecimals=${2} />%)
+                    <div className="flex flex-col gap-2 mt-auto relative z-10">
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-4xl sm:text-5xl font-black tracking-tighter text-slate-800 dark:text-white">
+                                <${AnimatedNumber} value=${value} isDecimal=${false} />
                             </span>
-                        `}
+                            <span className="text-sm text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-widest">${unit}</span>
+                        </div>
+                        
+                        ${percentage !== undefined ? html`
+                            <div className="flex items-center mt-1">
+                                <div className=${`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold shadow-sm border border-white/20 dark:border-white/5 bg-gradient-to-r ${c.gradient} text-white`}>
+                                    <${Icon} name="pie-chart" className="w-3.5 h-3.5 opacity-90" />
+                                    <span><${AnimatedNumber} value=${percentage} isDecimal=${true} maxDecimals=${2} />%</span>
+                                </div>
+                            </div>
+                        ` : html`<div className="h-8 mt-1"></div>`} 
                     </div>
                     
                     ${compInfo && html`
-                        <div className="mt-4 pt-3.5 border-t border-slate-200/50 dark:border-slate-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs font-bold gap-2">
-                            <span className="text-slate-400 dark:text-slate-500">Selisih vs Kriteria A</span>
-                            <div className=${`px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 w-full sm:w-auto justify-center sm:justify-start ${compInfo.color}`}>
-                                <${Icon} name=${compInfo.icon} className="w-3.5 h-3.5" />
+                        <div className="mt-6 pt-4 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs font-bold gap-3 relative z-10">
+                            <span className="text-slate-400 dark:text-slate-500 uppercase tracking-wider text-[10px]">Selisih Kriteria A</span>
+                            <div className=${`px-3 py-1.5 rounded-xl flex items-center gap-1.5 w-full sm:w-auto justify-center sm:justify-start ${compInfo.color} border ${compInfo.borderColor}`}>
+                                <${Icon} name=${compInfo.icon} className="w-4 h-4" />
                                 <span>${compInfo.text} ${percentage !== undefined ? '%' : unit}</span>
                             </div>
                         </div>
@@ -1128,7 +1147,7 @@
             `;
         };
 
-        const PieChartCard = ({ title, iconName, dataObj, isDarkMode }) => {
+        const PieChartCard = ({ title, iconName, dataObj, isDarkMode, delayIdx=0 }) => {
             const canvasRef = useRef(null);
             const chartInstance = useRef(null);
             const isEmpty = Object.keys(dataObj).length === 0;
@@ -1202,7 +1221,7 @@
                                                 let percentage = safePct(value, total);
                                                 let formattedPercentage = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(percentage);
                                                 
-                                                return ` ${label}: ${formattedValue} Unit (${formattedPercentage}%)`;
+                                                return ` ${label}: ${formattedValue} unit (${formattedPercentage}%)`;
                                             } catch (e) { return context.parsed; }
                                         }
                                     }
@@ -1216,7 +1235,10 @@
             }, [dataObj, isDarkMode, title, isEmpty]);
 
             return html`
-                <div className="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-between h-full hover:border-indigo-500/20 hover:-translate-y-1 transition-all duration-300">
+                <div 
+                    className="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-between h-full hover:border-indigo-500/30 hover:-translate-y-1 transition-all duration-500 hover:shadow-xl animate-fade-in-up"
+                    style=${{ animationDelay: (delayIdx * 75) + 'ms', animationFillMode: 'both' }}
+                >
                     <div className="flex items-center gap-3 mb-4 w-full">
                         <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 flex items-center justify-center shrink-0">
                             <${Icon} name=${iconName} className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -1233,7 +1255,7 @@
             `;
         };
 
-        const BarChartCard = ({ title, iconName, labels, dataPoints, chartColor, isDarkMode }) => {
+        const BarChartCard = ({ title, iconName, labels, dataPoints, chartColor, isDarkMode, delayIdx=0 }) => {
             const canvasRef = useRef(null);
             const chartInstance = useRef(null);
             const isEmpty = labels.length === 0;
@@ -1284,7 +1306,7 @@
                                         label: function(context) {
                                             try {
                                                 let value = context.parsed.y;
-                                                return new Intl.NumberFormat('id-ID').format(value) + ' Unit';
+                                                return new Intl.NumberFormat('id-ID').format(value) + ' unit';
                                             } catch(e) { return context.parsed.y; }
                                         }
                                     }
@@ -1316,7 +1338,10 @@
             }, [labels, dataPoints, isDarkMode, chartColor, isEmpty, title]);
 
             return html`
-                <div className="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-between h-full hover:border-indigo-500/20 hover:-translate-y-1 transition-all duration-300">
+                <div 
+                    className="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-between h-full hover:border-indigo-500/30 hover:-translate-y-1 transition-all duration-500 hover:shadow-xl animate-fade-in-up"
+                    style=${{ animationDelay: (delayIdx * 75) + 'ms', animationFillMode: 'both' }}
+                >
                     <div className="flex items-center gap-3 mb-4 w-full">
                         <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 flex items-center justify-center shrink-0">
                             <${Icon} name=${iconName} className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -1351,11 +1376,11 @@
                 <div className="flex flex-col gap-8 mt-2">
                     
                     ${kpis && kpis.total === 0 ? html`
-                        <div className="glass-panel p-8 rounded-3xl flex flex-col items-center justify-center text-center border-dashed border-2 opacity-80 h-full min-h-[300px]">
-                            <div className="p-4 rounded-full bg-slate-100 dark:bg-slate-800 mb-4 text-slate-400">
-                                <${Icon} name="inbox" className="w-8 h-8" />
+                        <div className="glass-panel p-8 rounded-3xl flex flex-col items-center justify-center text-center border-dashed border-2 border-slate-300 dark:border-slate-700 opacity-80 h-full min-h-[300px] animate-fade-in-up">
+                            <div className="p-5 rounded-full bg-slate-100 dark:bg-slate-800 mb-5 text-slate-400">
+                                <${Icon} name="inbox" className="w-10 h-10" />
                             </div>
-                            <h4 className="text-lg font-bold text-slate-600 dark:text-slate-300">Tidak Ada Data</h4>
+                            <h4 className="text-xl font-extrabold text-slate-600 dark:text-slate-300">Tidak Ada Data</h4>
                             <p className="text-sm text-slate-500 mt-2">Kriteria filter yang dipilih tidak mengembalikan data apa pun.</p>
                         </div>
                     ` : html`
@@ -1372,13 +1397,13 @@
                                     />
                                 `}
                                 ${!isCollapsedRekap && html`
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 fade-in mt-2">
-                                        <${MetricCard} label="Total TPP" iconName="database" value=${kpis?.total} unit="unit" compValue=${comparisonTargetKPIs?.total} themeGradient="from-indigo-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                        <${MetricCard} label="TPP Memiliki SLHS" iconName="badge-check" value=${kpis?.valSLHS} percentage=${kpis?.pctSLHS} unit="unit" compValue=${comparisonTargetKPIs?.pctSLHS} themeGradient="from-cyan-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                        <${MetricCard} label="Memenuhi Syarat Inspeksi Kesling" iconName="check-circle" value=${kpis?.valIKL} percentage=${kpis?.pctIKL} unit="unit" compValue=${comparisonTargetKPIs?.pctIKL} themeGradient="from-emerald-500 to-teal-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                        <${MetricCard} label="Memenuhi Syarat Peningkatan Kapasitas" iconName="bar-chart-2" value=${kpis?.valKapasitas} percentage=${kpis?.pctKapasitas} unit="unit" compValue=${comparisonTargetKPIs?.pctKapasitas} themeGradient="from-amber-500 to-orange-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                        <${MetricCard} label="Memenuhi Syarat Pemeriksaan Pangan" iconName="shield" value=${kpis?.valPangan} percentage=${kpis?.pctPangan} unit="unit" compValue=${comparisonTargetKPIs?.pctPangan} themeGradient="from-purple-500 to-fuchsia-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                        <${MetricCard} label="TPP Memenuhi Syarat" iconName="award" value=${kpis?.valTPP} percentage=${kpis?.pctTPP} unit="unit" compValue=${comparisonTargetKPIs?.pctTPP} themeGradient="from-rose-500 to-pink-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6 mt-4">
+                                        <${MetricCard} delayIdx=${1} label="Total TPP" iconName="database" value=${kpis?.total} unit="unit" compValue=${comparisonTargetKPIs?.total} baseColor="indigo" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                        <${MetricCard} delayIdx=${2} label="TPP Memiliki SLHS" iconName="badge-check" value=${kpis?.valSLHS} percentage=${kpis?.pctSLHS} unit="unit" compValue=${comparisonTargetKPIs?.pctSLHS} baseColor="cyan" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                        <${MetricCard} delayIdx=${3} label="Memenuhi Syarat Inspeksi Kesling" iconName="check-circle" value=${kpis?.valIKL} percentage=${kpis?.pctIKL} unit="unit" compValue=${comparisonTargetKPIs?.pctIKL} baseColor="emerald" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                        <${MetricCard} delayIdx=${4} label="Memenuhi Syarat Peningkatan Kapasitas" iconName="bar-chart-2" value=${kpis?.valKapasitas} percentage=${kpis?.pctKapasitas} unit="unit" compValue=${comparisonTargetKPIs?.pctKapasitas} baseColor="amber" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                        <${MetricCard} delayIdx=${5} label="Memenuhi Syarat Pemeriksaan Pangan" iconName="shield" value=${kpis?.valPangan} percentage=${kpis?.pctPangan} unit="unit" compValue=${comparisonTargetKPIs?.pctPangan} baseColor="purple" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                        <${MetricCard} delayIdx=${6} label="TPP Memenuhi Syarat" iconName="award" value=${kpis?.valTPP} percentage=${kpis?.pctTPP} unit="unit" compValue=${comparisonTargetKPIs?.pctTPP} baseColor="rose" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
                                     </div>
                                 `}
                             </div>
@@ -1393,10 +1418,10 @@
                                         onToggle=${() => { try { setIsCollapsedTren(!isCollapsedTren) } catch(e){} }}
                                     />
                                     ${!isCollapsedTren && html`
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 fade-in mt-2">
-                                            <${BarChartCard} title="Jumlah TPP" iconName="database" labels=${barChartData.labels} dataPoints=${barChartData.totalTPP} chartColor="#CAE0DC" isDarkMode=${isDarkMode} />
-                                            <${BarChartCard} title="TPP Memenuhi Syarat" iconName="award" labels=${barChartData.labels} dataPoints=${barChartData.tppMS} chartColor="#95BBE6" isDarkMode=${isDarkMode} />
-                                            <${BarChartCard} title="TPP Memiliki SLHS" iconName="badge-check" labels=${barChartData.labels} dataPoints=${barChartData.slhs} chartColor="#96A4DD" isDarkMode=${isDarkMode} />
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 mt-4">
+                                            <${BarChartCard} delayIdx=${1} title="Jumlah TPP" iconName="database" labels=${barChartData.labels} dataPoints=${barChartData.totalTPP} chartColor="#CAE0DC" isDarkMode=${isDarkMode} />
+                                            <${BarChartCard} delayIdx=${2} title="TPP Memenuhi Syarat" iconName="award" labels=${barChartData.labels} dataPoints=${barChartData.tppMS} chartColor="#95BBE6" isDarkMode=${isDarkMode} />
+                                            <${BarChartCard} delayIdx=${3} title="TPP Memiliki SLHS" iconName="badge-check" labels=${barChartData.labels} dataPoints=${barChartData.slhs} chartColor="#96A4DD" isDarkMode=${isDarkMode} />
                                         </div>
                                     `}
                                 </div>
@@ -1412,11 +1437,11 @@
                                         onToggle=${() => { try { setIsCollapsedDistribusi(!isCollapsedDistribusi) } catch(e){} }}
                                     />
                                     ${!isCollapsedDistribusi && html`
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 fade-in mt-2">
-                                            <${PieChartCard} title="Inspeksi Kesling" iconName="check-circle" dataObj=${chartData.ikl} isDarkMode=${isDarkMode} />
-                                            <${PieChartCard} title="Peningkatan Kapasitas" iconName="bar-chart-2" dataObj=${chartData.kapasitas} isDarkMode=${isDarkMode} />
-                                            <${PieChartCard} title="Pemeriksaan Pangan" iconName="shield" dataObj=${chartData.pangan} isDarkMode=${isDarkMode} />
-                                            <${PieChartCard} title="Status TPP" iconName="award" dataObj=${chartData.tpp} isDarkMode=${isDarkMode} />
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 sm:gap-6 mt-4">
+                                            <${PieChartCard} delayIdx=${1} title="Inspeksi Kesling" iconName="check-circle" dataObj=${chartData.ikl} isDarkMode=${isDarkMode} />
+                                            <${PieChartCard} delayIdx=${2} title="Peningkatan Kapasitas" iconName="bar-chart-2" dataObj=${chartData.kapasitas} isDarkMode=${isDarkMode} />
+                                            <${PieChartCard} delayIdx=${3} title="Pemeriksaan Pangan" iconName="shield" dataObj=${chartData.pangan} isDarkMode=${isDarkMode} />
+                                            <${PieChartCard} delayIdx=${4} title="Status TPP" iconName="award" dataObj=${chartData.tpp} isDarkMode=${isDarkMode} />
                                         </div>
                                     `}
                                 </div>
@@ -1486,7 +1511,7 @@
             };
 
             return html`
-                <div className="glass-panel p-4 sm:p-6 rounded-3xl mt-6 fade-in flex flex-col border-slate-200/80 dark:border-white/10 shadow-xl shadow-slate-100/50 dark:shadow-black/20 relative overflow-hidden">
+                <div className="glass-panel p-4 sm:p-6 rounded-3xl mt-6 animate-fade-in-up flex flex-col border-slate-200/80 dark:border-white/10 shadow-xl shadow-slate-100/50 dark:shadow-black/20 relative overflow-hidden">
                     
                     <${SectionHeader} 
                         title=${title} 
@@ -1496,7 +1521,7 @@
                     />
                     
                     ${!isCollapsed && html`
-                        <div className="overflow-x-auto touch-scroll rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white/50 dark:bg-slate-900/50 max-h-[500px] mt-2 fade-in">
+                        <div className="overflow-x-auto touch-scroll rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white/50 dark:bg-slate-900/50 max-h-[500px] mt-4 animate-fade-in-up">
                             <table className="w-full text-left border-collapse whitespace-nowrap min-w-max">
                                 <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 shadow-sm">
                                     <tr className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
@@ -1788,7 +1813,7 @@
             if (error) {
                 return html`
                     <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 text-center">
-                        <div className="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg border border-rose-500/20 dark:border-rose-500/30 shadow-2xl mx-auto w-full fade-in">
+                        <div className="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg border border-rose-500/20 dark:border-rose-500/30 shadow-2xl mx-auto w-full animate-fade-in-up">
                             <div className="w-14 h-14 sm:w-16 sm:h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-rose-500/5">
                                 <${Icon} name="alert-triangle" className="w-7 h-7 sm:w-8 sm:h-8" />
                             </div>
@@ -1803,7 +1828,7 @@
             }
 
             return html`
-                <div className="p-3 pb-safe sm:p-4 md:p-8 max-w-[1600px] mx-auto min-h-screen transition-colors duration-500 slide-up relative fade-in">
+                <div className="p-3 pb-safe sm:p-4 md:p-8 max-w-[1600px] mx-auto min-h-screen transition-colors duration-500 slide-up relative animate-fade-in-up">
                     
                     ${toastMsg && html`
                         <div className="fixed bottom-8 right-4 sm:right-8 z-50 max-w-sm sm:max-w-md px-5 py-4 rounded-2xl glass-panel border-indigo-500/30 dark:border-indigo-400/40 shadow-2xl bg-white/95 dark:bg-slate-900/95 flex items-center gap-3 animate-bounce">
@@ -1814,7 +1839,7 @@
                         </div>
                     `}
                     
-                    <${ShareModal} 
+                    <${ShareCard} 
                         isOpen=${showShareModal} 
                         onClose=${() => setShowShareModal(false)} 
                         url=${shareUrl} 
@@ -1913,7 +1938,7 @@
                         </div>
 
                         ${isComparing && html`
-                            <div className="flex-1 flex flex-col border-t lg:border-t-0 lg:border-l border-slate-200/80 dark:border-slate-800/80 pt-8 lg:pt-0 lg:pl-8 transition-all duration-500 fade-in print-full-width">
+                            <div className="flex-1 flex flex-col border-t lg:border-t-0 lg:border-l border-slate-200/80 dark:border-slate-800/80 pt-8 lg:pt-0 lg:pl-8 transition-all duration-500 animate-fade-in-up print-full-width">
                                 <div className="no-print">
                                     <${FilterGroup} 
                                         data=${rawData} filters=${filtersB} setFilters=${setFiltersB} 
