@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Data TPP untuk FSVA</title>
     
     <!-- Tailwind CSS untuk Styling Modern & Responsif -->
@@ -38,8 +38,14 @@
     <!-- PapaParse untuk membaca Google Sheet sebagai CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
-    <!-- Chart.js untuk visualisasi grafik Pie/Doughnut & Bar -->
+    <!-- Chart.js untuk visualisasi grafik -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- LZ-String untuk Kompresi URL Hash -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+    
+    <!-- QRious untuk Generate QR Code -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 
     <style>
         /* Transisi Global Mulus & Proteksi Sentuhan Ganda */
@@ -195,7 +201,7 @@
 
         const formatIntegerID = (num) => {
             try {
-                if (num === undefined || num === null || isNaN(num)) return '0';
+                if (num === undefined || num === null || isNaN(num) || !Number.isFinite(Number(num))) return '0';
                 return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(num);
             } catch (err) {
                 return String(num || 0);
@@ -204,7 +210,7 @@
 
         const formatDecimalID = (num, maxDecimals = 2) => {
             try {
-                if (num === undefined || num === null || isNaN(num)) return '0';
+                if (num === undefined || num === null || isNaN(num) || !Number.isFinite(Number(num))) return '0';
                 return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: maxDecimals }).format(num);
             } catch (err) {
                 let formatted = Number(num || 0).toFixed(maxDecimals);
@@ -213,9 +219,17 @@
             }
         };
 
+        const safePct = (val, tot) => {
+            try {
+                if (!tot || tot <= 0) return 0;
+                const res = (val / tot) * 100;
+                return Number.isFinite(res) ? res : 0;
+            } catch(e) { return 0; }
+        };
+
         // --- 0b. KOMPONEN ANIMASI ANGKA ---
         const AnimatedNumber = ({ value, isDecimal = false, maxDecimals = 2 }) => {
-            const safeValue = (v) => (v === undefined || v === null || isNaN(Number(v))) ? 0 : Number(v);
+            const safeValue = (v) => (v === undefined || v === null || isNaN(Number(v)) || !Number.isFinite(Number(v))) ? 0 : Number(v);
             const [displayValue, setDisplayValue] = useState(safeValue(value));
             const displayValueRef = useRef(safeValue(value));
             const rafIdRef = useRef(null);
@@ -302,6 +316,88 @@
             return html`<span ref=${containerRef} style=${{ display: 'contents' }}></span>`;
         };
 
+        // Komponen Modal QR & Share
+        const ShareModal = ({ isOpen, onClose, url, showToast }) => {
+            const qrRef = useRef(null);
+            
+            useEffect(() => {
+                try {
+                    if (isOpen && qrRef.current && window.QRious) {
+                        new QRious({
+                            element: qrRef.current,
+                            value: url,
+                            size: 200,
+                            level: 'H',
+                            backgroundAlpha: 1,
+                            backgroundColor: '#ffffff',
+                            foreground: '#0f172a'
+                        });
+                    }
+                } catch(e) { console.error(e); }
+            }, [isOpen, url]);
+
+            if (!isOpen) return null;
+
+            return html`
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick=${onClose}></div>
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-800 relative z-10 fade-in flex flex-col items-center">
+                        <button onClick=${onClose} className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 transition-colors">
+                            <${Icon} name="x" className="w-4 h-4" />
+                        </button>
+                        
+                        <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-4">
+                            <${Icon} name="share-2" className="w-6 h-6" />
+                        </div>
+                        
+                        <h3 className="text-xl font-extrabold text-slate-800 dark:text-white mb-2 text-center">Bagikan Tampilan</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">Pindai kode QR atau salin tautan di bawah untuk membagikan komparasi & filter saat ini.</p>
+                        
+                        <div className="bg-white p-3 rounded-2xl shadow-inner border border-slate-200 mb-6 flex items-center justify-center aspect-square">
+                            <canvas ref=${qrRef}></canvas>
+                        </div>
+                        
+                        <div className="w-full flex items-center gap-2 mb-4 relative">
+                            <input 
+                                type="text" 
+                                readOnly 
+                                value=${url} 
+                                className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-600 dark:text-slate-300 text-xs py-3 pl-4 pr-12 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50" 
+                            />
+                            <button 
+                                onClick=${() => {
+                                    try {
+                                        navigator.clipboard.writeText(url).then(() => {
+                                            showToast("Tautan berhasil disalin!");
+                                        }).catch(() => {
+                                            const textArea = document.createElement("textarea");
+                                            textArea.value = url;
+                                            document.body.appendChild(textArea);
+                                            textArea.select();
+                                            document.execCommand('copy');
+                                            document.body.removeChild(textArea);
+                                            showToast("Tautan disalin! (Metode standar)");
+                                        });
+                                    } catch(e) {}
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                                title="Salin Tautan"
+                            >
+                                <${Icon} name="copy" className="w-5 h-5" />
+                            </button>
+                        </div>
+                        
+                        <button 
+                            onClick=${onClose} 
+                            className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-sm transition-colors"
+                        >
+                            Tutup Tampilan
+                        </button>
+                    </div>
+                </div>
+            `;
+        };
+
         // Komponen Header Seragam untuk 5 Bagian Utama (Dilengkapi fitur Toggle/Collapsible)
         const SectionHeader = ({ title, iconName, badgeText, isCollapsed, onToggle }) => {
             return html`
@@ -382,11 +478,11 @@
                     } catch (err) {}
                 };
                 document.addEventListener('mousedown', handleClickOutside);
-                document.addEventListener('touchstart', handleClickOutside, { passive: true });
+                document.addEventListener('touchend', handleClickOutside, { passive: true });
                 return () => {
                     try {
                         document.removeEventListener('mousedown', handleClickOutside);
-                        document.removeEventListener('touchstart', handleClickOutside);
+                        document.removeEventListener('touchend', handleClickOutside);
                     } catch(e) {}
                 };
             }, [activeDropdown, dropdownId, setActiveDropdown]);
@@ -411,7 +507,7 @@
 
             return html`
                 <div className=${`relative w-full ${isThisOpen ? 'z-30' : 'z-10'}`} ref=${dropdownRef}>
-                    <label className="flex items-center text-xs font-bold tracking-wider text-slate-400 dark:text-slate-400 mb-1.5 pl-1">
+                    <label className="flex items-center text-xs font-bold tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 pl-1">
                         ${iconName && html`<${Icon} name=${iconName} className="w-3.5 h-3.5 mr-1.5 text-indigo-500/70 dark:text-indigo-400/70" />`}
                         ${label}
                     </label>
@@ -428,8 +524,8 @@
                             } catch(e) {}
                         }}
                     >
-                        <div className="flex-1 overflow-hidden whitespace-nowrap text-ellipsis text-sm font-medium text-slate-700 dark:text-slate-200 pr-2">
-                            ${selectedValues.length === 0 ? html`<span className="text-slate-400/80 dark:text-slate-500/80">Pilih ${label}...</span>` : selectedValues.join(', ')}
+                        <div className="flex-1 overflow-hidden whitespace-nowrap text-ellipsis text-sm font-bold text-slate-900 dark:text-white pr-2">
+                            ${selectedValues.length === 0 ? html`<span className="text-slate-500 dark:text-slate-400 font-medium">Pilih ${label}...</span>` : selectedValues.join(', ')}
                         </div>
                         <${Icon} name=${isThisOpen ? "chevron-up" : "chevron-down"} className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
                     </div>
@@ -445,7 +541,7 @@
                                     value=${searchQuery}
                                     onChange=${(e) => setSearchQuery(e.target.value)}
                                     onClick=${(e) => e.stopPropagation()}
-                                    onTouchStart=${(e) => e.stopPropagation()} 
+                                    onTouchEnd=${(e) => e.stopPropagation()} 
                                 />
                             </div>
                             <div className="overflow-y-auto touch-scroll flex-1 p-1 max-h-[40vh] sm:max-h-60">
@@ -494,11 +590,11 @@
                     } catch (err) {}
                 };
                 document.addEventListener('mousedown', handleClickOutside);
-                document.addEventListener('touchstart', handleClickOutside, { passive: true });
+                document.addEventListener('touchend', handleClickOutside, { passive: true });
                 return () => {
                     try {
                         document.removeEventListener('mousedown', handleClickOutside);
-                        document.removeEventListener('touchstart', handleClickOutside);
+                        document.removeEventListener('touchend', handleClickOutside);
                     } catch(e) {}
                 };
             }, [activeDropdown, dropdownId, setActiveDropdown]);
@@ -519,7 +615,7 @@
 
             return html`
                 <div className=${`relative w-full ${isThisOpen ? 'z-30' : 'z-10'}`} ref=${dropdownRef}>
-                    <label className="flex items-center text-xs font-bold tracking-wider text-slate-400 dark:text-slate-400 mb-1.5 pl-1">
+                    <label className="flex items-center text-xs font-bold tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 pl-1">
                         ${iconName && html`<${Icon} name=${iconName} className="w-3.5 h-3.5 mr-1.5 text-indigo-500/70 dark:text-indigo-400/70" />`}
                         ${label}
                     </label>
@@ -537,8 +633,8 @@
                             } catch (e) {}
                         }}
                     >
-                        <div className="flex-1 overflow-hidden whitespace-nowrap text-ellipsis text-sm font-medium text-slate-700 dark:text-slate-200 pr-2">
-                            ${value ? value : html`<span className="text-slate-400/80 dark:text-slate-500/80">Semua ${label}</span>`}
+                        <div className="flex-1 overflow-hidden whitespace-nowrap text-ellipsis text-sm font-bold text-slate-900 dark:text-white pr-2">
+                            ${value ? value : html`<span className="text-slate-500 dark:text-slate-400 font-medium">Semua ${label}</span>`}
                         </div>
                         <${Icon} name=${isThisOpen ? "chevron-up" : "chevron-down"} className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
                     </div>
@@ -554,7 +650,7 @@
                                     value=${searchQuery}
                                     onChange=${(e) => setSearchQuery(e.target.value)}
                                     onClick=${(e) => e.stopPropagation()}
-                                    onTouchStart=${(e) => e.stopPropagation()}
+                                    onTouchEnd=${(e) => e.stopPropagation()}
                                 />
                             </div>
                             <div className="overflow-y-auto touch-scroll flex-1 p-1 max-h-[40vh] sm:max-h-60">
@@ -745,10 +841,10 @@
                                             })
                                         } catch (err) {}
                                     }}
-                                    className="px-4 py-2.5 min-h-[44px] text-xs font-bold rounded-xl text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 active:bg-indigo-100 dark:active:bg-indigo-900 transition-all duration-300 flex items-center shadow-sm active:scale-95"
+                                    className="px-4 py-2.5 min-h-[44px] text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 active:bg-indigo-100 dark:active:bg-indigo-900 transition-all duration-300 flex items-center shadow-sm active:scale-95"
                                 >
                                     <${Icon} name="rotate-ccw" className="w-4 h-4 mr-2" />
-                                    Reset Kriteria
+                                    reset filter
                                 </button>
                             </div>
                         </div>
@@ -809,15 +905,15 @@
                 return {
                     total,
                     valIKL: msIKL,
-                    pctIKL: total > 0 ? (msIKL / total) * 100 : 0,
+                    pctIKL: safePct(msIKL, total),
                     valKapasitas: msKapasitas,
-                    pctKapasitas: total > 0 ? (msKapasitas / total) * 100 : 0,
+                    pctKapasitas: safePct(msKapasitas, total),
                     valPangan: msPangan,
-                    pctPangan: total > 0 ? (msPangan / total) * 100 : 0,
+                    pctPangan: safePct(msPangan, total),
                     valTPP: msTPP,
-                    pctTPP: total > 0 ? (msTPP / total) * 100 : 0,
+                    pctTPP: safePct(msTPP, total),
                     valSLHS: msSLHS,
-                    pctSLHS: total > 0 ? (msSLHS / total) * 100 : 0,
+                    pctSLHS: safePct(msSLHS, total),
                 };
             } catch (error) {
                 return { total: 0, valIKL: 0, pctIKL: 0, valKapasitas: 0, pctKapasitas: 0, valPangan: 0, pctPangan: 0, valTPP: 0, pctTPP: 0, valSLHS: 0, pctSLHS: 0 };
@@ -1035,11 +1131,17 @@
         const PieChartCard = ({ title, iconName, dataObj, isDarkMode }) => {
             const canvasRef = useRef(null);
             const chartInstance = useRef(null);
+            const isEmpty = Object.keys(dataObj).length === 0;
 
             useEffect(() => {
                 try {
                     if (!canvasRef.current) return;
-                    if (chartInstance.current) chartInstance.current.destroy();
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                        chartInstance.current = null;
+                    }
+
+                    if (isEmpty) return;
 
                     const sortedData = sortPieData(title, dataObj);
                     const labels = Object.keys(sortedData);
@@ -1097,7 +1199,7 @@
                                                 let total = context.dataset.data.reduce((a, b) => a + b, 0);
                                                 
                                                 let formattedValue = new Intl.NumberFormat('id-ID').format(value);
-                                                let percentage = total > 0 ? (value / total) * 100 : 0;
+                                                let percentage = safePct(value, total);
                                                 let formattedPercentage = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(percentage);
                                                 
                                                 return ` ${label}: ${formattedValue} Unit (${formattedPercentage}%)`;
@@ -1111,7 +1213,7 @@
                 } catch (error) { console.error("Error drawing pie chart:", error); }
 
                 return () => { try { if (chartInstance.current) chartInstance.current.destroy(); } catch (e) {} };
-            }, [dataObj, isDarkMode, title]);
+            }, [dataObj, isDarkMode, title, isEmpty]);
 
             return html`
                 <div className="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-between h-full hover:border-indigo-500/20 hover:-translate-y-1 transition-all duration-300">
@@ -1122,11 +1224,10 @@
                         <span className="text-sm font-bold text-slate-700 dark:text-slate-200 tracking-wide flex-1 truncate" title=${title}>${title}</span>
                     </div>
                     <div className="relative w-full h-[220px] flex items-center justify-center pb-2">
-                        ${Object.keys(dataObj).length === 0 ? html`
-                            <span className="text-xs text-slate-400">Tidak ada data</span>
-                        ` : html`
-                            <canvas ref=${canvasRef}></canvas>
-                        `}
+                        <span className=${`text-xs text-slate-400 font-medium absolute z-10 ${isEmpty ? 'block' : 'hidden'}`}>
+                            Tidak ada data
+                        </span>
+                        <canvas ref=${canvasRef} className=${`w-full h-full transition-opacity duration-300 ${isEmpty ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}></canvas>
                     </div>
                 </div>
             `;
@@ -1135,11 +1236,17 @@
         const BarChartCard = ({ title, iconName, labels, dataPoints, chartColor, isDarkMode }) => {
             const canvasRef = useRef(null);
             const chartInstance = useRef(null);
+            const isEmpty = labels.length === 0;
 
             useEffect(() => {
                 try {
                     if (!canvasRef.current) return;
-                    if (chartInstance.current) chartInstance.current.destroy();
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                        chartInstance.current = null;
+                    }
+                    
+                    if (isEmpty) return;
 
                     const ctx = canvasRef.current.getContext('2d');
                     const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
@@ -1155,6 +1262,7 @@
                                 backgroundColor: chartColor,
                                 borderRadius: 6,
                                 barPercentage: 0.6,
+                                maxBarThickness: 40 // Proteksi ukuran pilar jika data tunggal
                             }]
                         },
                         options: {
@@ -1205,7 +1313,7 @@
                 } catch (error) { console.error("Error drawing bar chart:", error); }
 
                 return () => { try { if (chartInstance.current) chartInstance.current.destroy(); } catch (e) {} };
-            }, [labels, dataPoints, isDarkMode, chartColor]);
+            }, [labels, dataPoints, isDarkMode, chartColor, isEmpty, title]);
 
             return html`
                 <div className="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-between h-full hover:border-indigo-500/20 hover:-translate-y-1 transition-all duration-300">
@@ -1216,11 +1324,10 @@
                         <span className="text-sm font-bold text-slate-700 dark:text-slate-200 tracking-wide flex-1 truncate" title=${title}>${title}</span>
                     </div>
                     <div className="relative w-full h-[220px] flex items-center justify-center pb-2">
-                        ${labels.length === 0 ? html`
-                            <span className="text-xs text-slate-400">Tidak ada data tahun</span>
-                        ` : html`
-                            <canvas ref=${canvasRef}></canvas>
-                        `}
+                        <span className=${`text-xs text-slate-400 font-medium absolute z-10 ${isEmpty ? 'block' : 'hidden'}`}>
+                            Tidak ada data tahun
+                        </span>
+                        <canvas ref=${canvasRef} className=${`w-full h-full transition-opacity duration-300 ${isEmpty ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}></canvas>
                     </div>
                 </div>
             `;
@@ -1266,12 +1373,12 @@
                                 `}
                                 ${!isCollapsedRekap && html`
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 fade-in mt-2">
-                                        <${MetricCard} label="Total TPP" iconName="database" value=${kpis?.total} unit="Unit" compValue=${comparisonTargetKPIs?.total} themeGradient="from-indigo-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                        <${MetricCard} label="TPP Memiliki SLHS" iconName="badge-check" value=${kpis?.valSLHS} percentage=${kpis?.pctSLHS} unit="Unit" compValue=${comparisonTargetKPIs?.pctSLHS} themeGradient="from-cyan-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                        <${MetricCard} label="Memenuhi Syarat Inspeksi Kesling" iconName="check-circle" value=${kpis?.valIKL} percentage=${kpis?.pctIKL} unit="Unit" compValue=${comparisonTargetKPIs?.pctIKL} themeGradient="from-emerald-500 to-teal-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                        <${MetricCard} label="Memenuhi Syarat Peningkatan Kapasitas" iconName="bar-chart-2" value=${kpis?.valKapasitas} percentage=${kpis?.pctKapasitas} unit="Unit" compValue=${comparisonTargetKPIs?.pctKapasitas} themeGradient="from-amber-500 to-orange-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                        <${MetricCard} label="Memenuhi Syarat Pemeriksaan Pangan" iconName="shield" value=${kpis?.valPangan} percentage=${kpis?.pctPangan} unit="Unit" compValue=${comparisonTargetKPIs?.pctPangan} themeGradient="from-purple-500 to-fuchsia-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
-                                        <${MetricCard} label="TPP Memenuhi Syarat" iconName="award" value=${kpis?.valTPP} percentage=${kpis?.pctTPP} unit="Unit" compValue=${comparisonTargetKPIs?.pctTPP} themeGradient="from-rose-500 to-pink-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                        <${MetricCard} label="Total TPP" iconName="database" value=${kpis?.total} unit="unit" compValue=${comparisonTargetKPIs?.total} themeGradient="from-indigo-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                        <${MetricCard} label="TPP Memiliki SLHS" iconName="badge-check" value=${kpis?.valSLHS} percentage=${kpis?.pctSLHS} unit="unit" compValue=${comparisonTargetKPIs?.pctSLHS} themeGradient="from-cyan-500 to-blue-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                        <${MetricCard} label="Memenuhi Syarat Inspeksi Kesling" iconName="check-circle" value=${kpis?.valIKL} percentage=${kpis?.pctIKL} unit="unit" compValue=${comparisonTargetKPIs?.pctIKL} themeGradient="from-emerald-500 to-teal-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                        <${MetricCard} label="Memenuhi Syarat Peningkatan Kapasitas" iconName="bar-chart-2" value=${kpis?.valKapasitas} percentage=${kpis?.pctKapasitas} unit="unit" compValue=${comparisonTargetKPIs?.pctKapasitas} themeGradient="from-amber-500 to-orange-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                        <${MetricCard} label="Memenuhi Syarat Pemeriksaan Pangan" iconName="shield" value=${kpis?.valPangan} percentage=${kpis?.pctPangan} unit="unit" compValue=${comparisonTargetKPIs?.pctPangan} themeGradient="from-purple-500 to-fuchsia-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
+                                        <${MetricCard} label="TPP Memenuhi Syarat" iconName="award" value=${kpis?.valTPP} percentage=${kpis?.pctTPP} unit="unit" compValue=${comparisonTargetKPIs?.pctTPP} themeGradient="from-rose-500 to-pink-600" isComparing=${isComparing} isTimeCompare=${isTimeCompare} />
                                     </div>
                                 `}
                             </div>
@@ -1357,15 +1464,22 @@
                 }
             };
 
+            // Menggunakan Inline SVG murni agar tidak ada lag rendering saat tabel punya ratusan data
             const getSortIcon = (columnKey) => {
                 try {
                     if (sortConfig.key !== columnKey) {
-                        return html`<${Icon} name="chevrons-up-down" className="w-3.5 h-3.5 ml-1.5 opacity-40 group-hover:opacity-100 transition-opacity" />`;
+                        return html`
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-1.5 opacity-40 group-hover:opacity-100 transition-opacity"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+                        `;
                     }
                     if (sortConfig.direction === 'asc') {
-                        return html`<${Icon} name="chevron-up" className="w-3.5 h-3.5 ml-1.5 text-indigo-500" />`;
+                        return html`
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-1.5 text-indigo-500"><path d="m18 15-6-6-6 6"/></svg>
+                        `;
                     }
-                    return html`<${Icon} name="chevron-down" className="w-3.5 h-3.5 ml-1.5 text-indigo-500" />`;
+                    return html`
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-1.5 text-indigo-500"><path d="m6 9 6 6 6-6"/></svg>
+                    `;
                 } catch (e) {
                     return null;
                 }
@@ -1439,6 +1553,10 @@
             const [lastSyncTime, setLastSyncTime] = useState('');
             const [isDarkMode, setIsDarkMode] = useState(false); 
             const [activeDropdown, setActiveDropdown] = useState(null);
+            
+            // Komponen Modal Share
+            const [showShareModal, setShowShareModal] = useState(false);
+            const [shareUrl, setShareUrl] = useState('');
 
             const [toastMsg, setToastMsg] = useState(null);
 
@@ -1458,29 +1576,44 @@
             const [filtersA, setFiltersA] = useState(initialFilterState);
             const [filtersB, setFiltersB] = useState(initialFilterState);
 
+            // Fungsi Kompresi Data Filter ke dalam Hash URL menggunakan LZ-String
+            const compressState = (state) => {
+                try {
+                    return LZString.compressToEncodedURIComponent(JSON.stringify(state));
+                } catch(e) { return ''; }
+            };
+
+            const decompressState = (hashStr) => {
+                try {
+                    return JSON.parse(LZString.decompressFromEncodedURIComponent(hashStr));
+                } catch(e) { return null; }
+            };
+
+            // Efek untuk memuat state dari URL Hash
             useEffect(() => {
                 try {
                     const hash = window.location.hash;
                     if (hash && hash.length > 1) {
-                        const cleanHash = decodeURIComponent(hash.substring(1));
-                        try {
-                            const state = JSON.parse(cleanHash);
-                            if (state && typeof state === 'object') {
-                                if (state.filtersA) setFiltersA(state.filtersA);
-                                if (state.filtersB) setFiltersB(state.filtersB);
-                                if (typeof state.isComparing === 'boolean') setIsComparing(state.isComparing);
-                                showToast("Visualisasi diselaraskan dari tautan berhasil.");
-                            }
-                        } catch (jsonErr) {}
+                        const cleanHash = hash.substring(1); // tanpa decodeURIComponent karena LZString menanganinya
+                        const state = decompressState(cleanHash);
+                        
+                        if (state && typeof state === 'object') {
+                            if (state.filtersA) setFiltersA(state.filtersA);
+                            if (state.filtersB) setFiltersB(state.filtersB);
+                            if (typeof state.isComparing === 'boolean') setIsComparing(state.isComparing);
+                            showToast("Visualisasi berhasil diselaraskan dari tautan.");
+                        }
                     }
                 } catch (e) {}
             }, []);
 
+            // Efek untuk menyimpan state ke URL Hash saat data berubah
             useEffect(() => {
                 try {
                     if (rawData.length > 0) {
                         const state = { filtersA, filtersB, isComparing };
-                        const newHashString = `#${encodeURIComponent(JSON.stringify(state))}`;
+                        const compressed = compressState(state);
+                        const newHashString = `#${compressed}`;
                         if (window.location.hash !== newHashString) {
                             window.history.replaceState(null, '', newHashString);
                         }
@@ -1488,28 +1621,13 @@
                 } catch(e) { console.error("URL Hash error:", e); }
             }, [filtersA, filtersB, isComparing, rawData]);
 
-            const handleShareLink = () => {
+            // Handler ketika tombol Bagikan ditekan
+            const handleShareLinkClick = () => {
                 try {
                     const currentUrl = window.location.href;
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(currentUrl).then(() => {
-                            showToast("Tautan konfigurasi disalin ke clipboard! Siap dibagikan.");
-                        }).catch(() => fallbackCopyText(currentUrl));
-                    } else fallbackCopyText(currentUrl);
-                } catch (err) { showToast("Gagal menyalin tautan."); }
-            };
-
-            const fallbackCopyText = (text) => {
-                try {
-                    const textArea = document.createElement("textarea");
-                    textArea.value = text;
-                    textArea.style.position = "fixed"; 
-                    document.body.appendChild(textArea);
-                    textArea.focus(); textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    showToast("Tautan berhasil disalin! (Metode standar)");
-                } catch (e) { showToast("Gagal menyalin teks."); }
+                    setShareUrl(currentUrl);
+                    setShowShareModal(true);
+                } catch (err) { showToast("Gagal memproses tautan."); }
             };
 
             useEffect(() => {
@@ -1695,6 +1813,13 @@
                             <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-snug">${toastMsg}</span>
                         </div>
                     `}
+                    
+                    <${ShareModal} 
+                        isOpen=${showShareModal} 
+                        onClose=${() => setShowShareModal(false)} 
+                        url=${shareUrl} 
+                        showToast=${showToast} 
+                    />
 
                     <header className="flex flex-col mb-6 sm:mb-8 bg-white/40 dark:bg-slate-900/40 p-5 sm:p-6 rounded-3xl backdrop-blur-md border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-100/30 dark:shadow-black/10 gap-5 relative overflow-hidden group">
                         <div className="absolute -top-32 -left-32 w-64 h-64 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none group-hover:scale-125 duration-700"></div>
@@ -1737,7 +1862,7 @@
                             </button>
 
                             <button 
-                                onClick=${handleShareLink}
+                                onClick=${handleShareLinkClick}
                                 className="flex-1 sm:flex-none sm:w-auto flex items-center justify-center gap-2 p-3 sm:px-4 sm:py-2.5 min-h-[44px] text-sm font-bold rounded-xl bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-500 dark:hover:border-indigo-400/50 hover:bg-indigo-500/[0.04] dark:hover:bg-indigo-400/[0.04] transition-all duration-300 shadow-sm active:scale-95"
                             >
                                 <${Icon} name="share-2" className="w-5 h-5 sm:w-4 sm:h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
