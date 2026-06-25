@@ -44,8 +44,8 @@
     <!-- LZ-String untuk Kompresi URL Hash -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     
-    <!-- QRious untuk Generate QR Code -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <!-- qrcode-generator v1.4.4 by Kazuhiko Arase -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 
     <style>
         /* Transisi Global Mulus & Proteksi Sentuhan Ganda */
@@ -154,6 +154,11 @@
         @keyframes ringRotate {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* Utility untuk gambar QR agar tetap tajam (pixelated) */
+        .qr-pixelated {
+            image-rendering: pixelated;
         }
     </style>
 </head>
@@ -316,50 +321,67 @@
             return html`<span ref=${containerRef} style=${{ display: 'contents' }}></span>`;
         };
 
-        // Komponen Kartu QR Code di Pojok Kanan Bawah
-        const ShareCard = ({ isOpen, onClose, url, showToast }) => {
+        // --- KOMPONEN WIDGET MENGAMBANG QR CODE ---
+        const FloatingShareWidget = ({ isOpen, onClose, url, showToast }) => {
             const [qrSrc, setQrSrc] = useState("");
+            const [isMinimized, setIsMinimized] = useState(false);
 
             useEffect(() => {
                 try {
-                    if (isOpen && window.QRious && url) {
-                        // Menggunakan metode toDataURL() memastikan QR digenerate sebagai file statis
-                        // mengatasi isu render timing pada elemen canvas React
-                        const qr = new QRious({
-                            value: url,
-                            size: 250,
-                            level: 'H',
-                            backgroundAlpha: 1,
-                            background: '#ffffff',
-                            foreground: '#0f172a'
-                        });
-                        setQrSrc(qr.toDataURL());
+                    if (isOpen && window.qrcode && url && !isMinimized) {
+                        // Inisialisasi qrcode generator (0 = auto size, 'H' = High error correction)
+                        const qr = window.qrcode(0, 'H');
+                        qr.addData(url);
+                        qr.make();
+                        // module count = 4px per block, margin = 2 blocks untuk resolusi optimal
+                        const dataUrl = qr.createDataURL(4, 2); 
+                        setQrSrc(dataUrl);
                     }
-                } catch(e) { console.error("Error saat merender QR Code:", e); }
-            }, [isOpen, url]);
+                } catch(e) { 
+                    console.error("Error saat merender QR Code:", e); 
+                }
+            }, [isOpen, url, isMinimized]);
 
             if (!isOpen) return null;
 
-            return html`
-                <div className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-[100] w-[calc(100vw-2rem)] sm:w-[340px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-[2rem] p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.3)] dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.6)] border border-slate-200/80 dark:border-slate-700/80 animate-fade-in-up flex flex-col group">
-                    <button onClick=${onClose} className="absolute top-4 right-4 p-2 rounded-full bg-slate-100/80 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-500 transition-colors z-10">
-                        <${Icon} name="x" className="w-4 h-4" />
+            if (isMinimized) {
+                return html`
+                    <button 
+                        onClick=${() => setIsMinimized(false)}
+                        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[100] w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 animate-fade-in-up"
+                        title="Tampilkan QR Code"
+                    >
+                        <${Icon} name="qr-code" className="w-6 h-6" />
                     </button>
-                    
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
-                            <${Icon} name="share-2" className="w-5 h-5" />
+                `;
+            }
+
+            return html`
+                <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[100] w-[calc(100vw-2rem)] sm:w-[300px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-[1.5rem] p-5 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.3)] dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.6)] border border-slate-200/80 dark:border-slate-700/80 animate-fade-in-up flex flex-col group">
+                    <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg flex items-center justify-center shrink-0">
+                                <${Icon} name="share-2" className="w-4 h-4" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-extrabold text-slate-800 dark:text-white leading-tight">Bagikan Tampilan</h3>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">Pindai QR atau salin tautan.</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-base font-extrabold text-slate-800 dark:text-white leading-tight">Bagikan Tampilan</h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Pindai QR atau salin tautan.</p>
+                        <div className="flex items-center gap-1.5">
+                            <button onClick=${() => setIsMinimized(true)} className="p-1.5 rounded-md bg-slate-100/80 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-500 transition-colors" title="Minimalkan Widget">
+                                <${Icon} name="minus" className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick=${onClose} className="p-1.5 rounded-md bg-rose-100/80 hover:bg-rose-200 dark:bg-rose-900/40 dark:hover:bg-rose-800/60 text-rose-500 transition-colors" title="Tutup Widget">
+                                <${Icon} name="x" className="w-3.5 h-3.5" />
+                            </button>
                         </div>
                     </div>
                     
-                    <div className="bg-white p-3 rounded-2xl shadow-inner border border-slate-200 mb-5 flex items-center justify-center aspect-square relative overflow-hidden group-hover:border-indigo-200 transition-colors duration-300">
+                    <div className="bg-white p-3 rounded-2xl shadow-inner border border-slate-200 mb-4 flex items-center justify-center aspect-square relative overflow-hidden group-hover:border-indigo-200 transition-colors duration-300">
                         ${qrSrc 
-                            ? html`<img src=${qrSrc} alt="QR Code Bagikan Tampilan" className="w-full h-full object-contain rounded-xl" />` 
-                            : html`<div className="w-full h-full flex items-center justify-center text-slate-300"><${Icon} name="loader" className="w-8 h-8 animate-spin" /></div>`
+                            ? html`<img src=${qrSrc} alt="QR Code Bagikan Tampilan" className="w-full h-full object-contain rounded-lg qr-pixelated" />` 
+                            : html`<div className="w-full h-full flex items-center justify-center text-slate-300"><${Icon} name="loader" className="w-6 h-6 animate-spin" /></div>`
                         }
                     </div>
                     
@@ -368,7 +390,7 @@
                             type="text" 
                             readOnly 
                             value=${url} 
-                            className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-600 dark:text-slate-300 text-xs py-3 pl-4 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" 
+                            className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-600 dark:text-slate-300 text-[10px] py-2.5 pl-3 pr-9 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" 
                         />
                         <button 
                             onClick=${() => {
@@ -384,12 +406,14 @@
                                         document.body.removeChild(textArea);
                                         showToast("Tautan disalin! (Metode standar)");
                                     });
-                                } catch(e) {}
+                                } catch(e) {
+                                    console.error(e);
+                                }
                             }}
-                            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg transition-colors"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg transition-colors"
                             title="Salin Tautan"
                         >
-                            <${Icon} name="copy" className="w-4 h-4" />
+                            <${Icon} name="copy" className="w-3.5 h-3.5" />
                         </button>
                     </div>
                 </div>
@@ -1579,9 +1603,9 @@
             const [isDarkMode, setIsDarkMode] = useState(false); 
             const [activeDropdown, setActiveDropdown] = useState(null);
             
-            // Komponen Modal Share
-            const [showShareModal, setShowShareModal] = useState(false);
-            const [shareUrl, setShareUrl] = useState('');
+            // Komponen Widget Share Mengambang di-set true sebagai default (tampil langsung)
+            const [showShareWidget, setShowShareWidget] = useState(true);
+            const [shareUrl, setShareUrl] = useState(window.location.href);
 
             const [toastMsg, setToastMsg] = useState(null);
 
@@ -1642,18 +1666,11 @@
                         if (window.location.hash !== newHashString) {
                             window.history.replaceState(null, '', newHashString);
                         }
+                        // Selalu perbarui URL tautan di QR Code setiap ada filter berubah
+                        setShareUrl(window.location.href);
                     }
                 } catch(e) { console.error("URL Hash error:", e); }
             }, [filtersA, filtersB, isComparing, rawData]);
-
-            // Handler ketika tombol Bagikan ditekan
-            const handleShareLinkClick = () => {
-                try {
-                    const currentUrl = window.location.href;
-                    setShareUrl(currentUrl);
-                    setShowShareModal(true);
-                } catch (err) { showToast("Gagal memproses tautan."); }
-            };
 
             useEffect(() => {
                 try {
@@ -1839,9 +1856,9 @@
                         </div>
                     `}
                     
-                    <${ShareCard} 
-                        isOpen=${showShareModal} 
-                        onClose=${() => setShowShareModal(false)} 
+                    <${FloatingShareWidget} 
+                        isOpen=${showShareWidget} 
+                        onClose=${() => setShowShareWidget(false)} 
                         url=${shareUrl} 
                         showToast=${showToast} 
                     />
@@ -1887,11 +1904,11 @@
                             </button>
 
                             <button 
-                                onClick=${handleShareLinkClick}
+                                onClick=${() => setShowShareWidget(true)}
                                 className="flex-1 sm:flex-none sm:w-auto flex items-center justify-center gap-2 p-3 sm:px-4 sm:py-2.5 min-h-[44px] text-sm font-bold rounded-xl bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-500 dark:hover:border-indigo-400/50 hover:bg-indigo-500/[0.04] dark:hover:bg-indigo-400/[0.04] transition-all duration-300 shadow-sm active:scale-95"
                             >
-                                <${Icon} name="share-2" className="w-5 h-5 sm:w-4 sm:h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
-                                <span className="hidden sm:inline">Bagikan Tampilan</span>
+                                <${Icon} name="qr-code" className="w-5 h-5 sm:w-4 sm:h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                                <span className="hidden sm:inline">Tampilkan QR Code</span>
                             </button>
 
                             <button 
